@@ -29,6 +29,7 @@
     "nexmo": "^2.0.2",
     "nodemailer": "^4.0.1",
     "redis": "^2.7.1",
+    "request-promise": "^4.2.0",
     "serve-favicon": "^2.4.2",
     "shopify-node-api": "^1.7.6",
     "winston": "^2.3.1",

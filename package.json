@@ -21,12 +21,16 @@
     "bluebird": "^3.5.0",
     "body-parser": "^1.17.1",
     "consolidate": "^0.14.5",
+    "crypto": "0.0.3",
     "dotenv": "^4.0.0",
     "express": "^4.15.2",
     "express-handlebars": "^3.0.0",
     "morgan": "^1.8.1",
     "nexmo": "^2.0.2",
     "nodemailer": "^4.0.1",
+    "redis": "^2.7.1",
+    "serve-favicon": "^2.4.2",
+    "shopify-node-api": "^1.7.6",
     "winston": "^2.3.1",
     "winston-loggly-bulk": "^1.4.2"
   }

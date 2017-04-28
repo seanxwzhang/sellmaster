@@ -1,5 +1,5 @@
 "use strict";
-
+const bluebird = require('bluebird');
 var winston = require('winston');
 require('winston-loggly-bulk');
 
@@ -10,4 +10,17 @@ winston.add(winston.transports.Loggly, {
    json:true
 });
 
-module.exports = {winston};
+//connect redis
+var redis = require('redis');
+bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis.Multi.prototype);
+var redisClient = redis.createClient(process.env.REDIS_PORT,process.env.REDIS_HOSTNAME, {password: process.env.REDIS_PASS});
+console.log('Connecting to Redis server');
+redisClient.on('connect', function() {
+    console.log('Redis server connected');
+});
+redisClient.on('error',function(err){
+  console.log('Redis server connection error',err);
+});
+
+module.exports = {winston, redisClient};

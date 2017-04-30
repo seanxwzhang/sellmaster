@@ -17,15 +17,12 @@ const favicon = require('serve-favicon');
 if (process.env.NODE_ENV == 'prod') {
     var privateKey  = fs.readFileSync('sslcert/server.key', 'utf8');
     var certificate = fs.readFileSync('sslcert/server.crt', 'utf8');
-} else if (process.env.NODE_ENV == 'dev') {
+} else {
     var privateKey  = fs.readFileSync('sslcert/localhost.key', 'utf8');
     var certificate = fs.readFileSync('sslcert/localhost.crt', 'utf8');
-} else {
-    throw new Error("NODE_ENV not prod nor dev");
 }
 
 var credentials = {key: privateKey, cert: certificate};
-
 
 var app = express();
 // serve favicon

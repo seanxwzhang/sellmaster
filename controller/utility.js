@@ -15,7 +15,7 @@ var getScope = function(scope) {
 }
 
 var getCallbackUrl = function(channel) {
-    return `http://${process.env.NODE_ENV == 'dev' ? 'localhost:' + process.env.PORT : process.env.PROD_HOSTNAME}/auth/${channel}/callback`;
+    return `http://${process.env.NODE_ENV == 'dev' ? 'localhost:' + process.env.UNSECURE_PORT : process.env.PROD_HOSTNAME}/auth/${channel}/callback`;
 }
 
 var getNonceKey = function(channel, shop) {

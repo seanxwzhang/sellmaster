@@ -12,6 +12,7 @@ router.get('/shopify/initiate', (req, res, next) => {
         var nonce = buf.toString('hex');
         redisClient.setAsync(getNonceKey('shopify', getStoreName(req)), nonce)
         .then((result) => {
+            console.log(getCallbackUrl("shopify"));
             var config = {
                 shop: getStoreName(req),
                 shopify_api_key: process.env.CLIENT_ID,

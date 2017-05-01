@@ -5,7 +5,8 @@ const {winston} = require("./globals.js");
 // home controller
 router.get('/', (req, res, next) => {
     res.render('home',{
-        style: "css/home.css"
+        style: "css/home.css",
+        js: "js/home.js"
     });
 })
 

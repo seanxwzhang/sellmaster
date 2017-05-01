@@ -118,6 +118,7 @@ body {
 }
 
 
+
 /*
  * Footer
  */
@@ -125,6 +126,14 @@ body {
 .mastfoot {
   color: #999; /* IE8 proofing */
   color: rgba(255,255,255,.5);
+}
+
+.oauth-button {
+    top: 10px;
+}
+
+input[type=text] {
+    color: white;
 }
 
 

@@ -1,7 +1,7 @@
 "use strict";
 
 var getStoreName = function(req) {
-    if (req.query.storename) {
+    if (req.query.storename && req.query.storename != "undefined") {
         return req.query.storename;
     } else if (req.query.shop) {
         return req.query.shop.split('.')[0];

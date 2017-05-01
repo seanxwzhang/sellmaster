@@ -100,9 +100,11 @@ router.get('/ebay/callback', (req, res, next) => {
             json: true,
             resolveWithFullResponse: true
         }).then((response) => {
-            console.log("success");
-            console.log(response);
-            res.status(200).send("success");
+            redisClient.setAsync(getTockenKey("ebay", getStoreName(req)), response.body.access_token)
+            .then((result) => {
+                console.log(response);
+                res.status(200).send("access token obtained");
+            })
         }).catch((err) => {
             console.log("authentication failed, user tocken not obtained: " + err);
             res.status(400).send("Server error: " + err);

@@ -12,6 +12,6 @@ router.get('/', (req, res, next) => {
 
 router.use('/auth', require('./controller/auth.js'));
 
-
+router.use('/dashboard', require('./controller/dashboard.js'));
 
 module.exports = router;

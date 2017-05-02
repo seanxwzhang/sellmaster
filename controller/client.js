@@ -6,13 +6,11 @@ const {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey} = requ
 const {winston, redisClient} = require("../globals.js");
 
 
-
-
 /**
  * Ebay http client
  **/
 class eBayClient {
-    constructor(storename) {
+    constructor(username) {
         if (process.env.NODE_ENV == "sandbox") {
             this.baseUrl = "https://api.sandbox.ebay.com";
         } else {
@@ -20,7 +18,7 @@ class eBayClient {
         }
         this.authKey = undefined;
         this.headers = {
-            'User-Agent': 'SellMaster Ebay Client',
+            'User-Agent': 'SellMaster Ebay Client',·
             'Content-Type': 'application/json'
         }
         this.get = this._request('GET');
@@ -39,7 +37,7 @@ class eBayClient {
                 if (typeof client.authKey !== "undefined") {
                     return client.headers;
                 } else {
-                    return redisClient.getAsync(getTockenKey("ebay", storename))
+                    return redisClient.getAsync(getTockenKey("ebay", username))
                     .then((token) => {
                         client.authKey = token;
                         if (!client.authKey.startsWith('Bearer ')) {

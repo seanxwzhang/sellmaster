@@ -3,8 +3,11 @@
 const router = require('express').Router();
 const crypto = require('crypto');
 const rp = require('request-promise');
+const request = require('request');
 const {winston, redisClient} = require("../globals");
 const {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey} = require("./utility");
+const {eBayClient, ShopifyClient} = require('./client');
+const parseString = require('xml2js').parseString;
 var shopifyAPI = require('shopify-node-api');
 
 router.get('/shopify/initiate', (req, res, next) => {
@@ -34,15 +37,52 @@ router.get('/shopify/initiate', (req, res, next) => {
 })
 
 router.get('/ebay/initiate', (req, res, next) => {
-    crypto.randomBytes(48, (err, buf) => {
-        var nonce = buf.toString('hex');
-        redisClient.setAsync(getNonceKey('ebay', getStoreName(req)), nonce)
-        .then((result) => {
-            var url = process.env.NODE_ENV == 'dev' ? process.env.EBAY_SANDBOX_SIGNIN_URL : process.env.EBAY_PROD_SIGNIN_URL;
-            url += `&state=${nonce}`;
-            res.redirect(url);
+    rp({
+        method: 'POST',
+        uri: process.env.EBAY_ENV == "sandbox" ? "http://open.api.sandbox.ebay.com/shopping" : "http://open.api.ebay.com/shopping",
+        headers: {
+            "X-EBAY-API-APP-ID": process.env.EBAY_ENV == "sandbox" ? process.env.EBAY_SANDBOX_CLIENT_ID : process.env.EBAY_PROD_CLIENT_ID,
+            "X-EBAY-API-SITE-ID": 0,
+            "X-EBAY-API-CALL-NAME": "GetUserProfile",
+            "X-EBAY-API-VERSION": 824,
+            "X-EBAY-API-REQUEST-ENCODING": "xml"
+        },
+        body: `<?xml version="1.0" encoding="utf-8"?><GetUserProfileRequest xmlns="urn:ebay:apis:eBLBaseComponents"><UserID>${getStoreName(req)}</UserID></GetUserProfileRequest>`,
+        resolveWithFullResponse: true,
+        simple: false
+    }).then((response) => {
+        var flag = response.body.match(/<Ack.*>([^<]*)<\/Ack>/)[1];
+        console.log(flag);
+        if (flag == "Success") {
+            return getStoreName(req);
+        } else if (flag == "Failure") {
+            throw "no matching userid"
+        } else {
+            throw "xml parsing error";
+        }
+    }).catch((err) => {
+        if (err == "no matching userid") {
+            res.redirect('/?message=No matching eBay userID');
+        }
+        throw err;
+    }).then((userid) => {
+        crypto.randomBytes(48, (err, buf) => {
+            var nonce = buf.toString('hex');
+            redisClient.setAsync(getNonceKey('ebay', userid), nonce)
+            .then((result) => {
+                var url = process.env.NODE_ENV == 'dev' ? process.env.EBAY_SANDBOX_SIGNIN_URL : process.env.EBAY_PROD_SIGNIN_URL;
+                url += `&state=${nonce}`;
+                res.redirect(url);
+            })
         })
+    }).catch((err) => {
+        if (err !== "no matching userid") {
+            res.status(500).send(err);
+        } else {
+            return;
+        }
     })
+
 });
 
 router.get('/shopify/callback', (req, res, next) => {
@@ -100,11 +140,21 @@ router.get('/ebay/callback', (req, res, next) => {
             json: true,
             resolveWithFullResponse: true
         }).then((response) => {
-            redisClient.setAsync(getTockenKey("ebay", getStoreName(req)), response.body.access_token)
+            return redisClient.setAsync(getTockenKey("ebay", getStoreName(req)), JSON.stringify(response.body.access_token))
             .then((result) => {
-                console.log(response);
-                res.status(200).send("access token obtained");
+                console.log(result);
+                console.log(getTockenKey("ebay", getStoreName(req)));
+                console.log(response.body.access_token);
+                var ebayClient = new eBayClient(getStoreName(req));
+                return ebayClient.get('buy/browse/v1/item_summary/search?category_ids=182185')
+            }).then((result) => {
+                console.log(result);
+                res.status(200).send(result);
+            }).catch((err) => {
+                console.log("ebay client error: " + err);
+                res.status(500).send("Sever error: " + err);
             })
+
         }).catch((err) => {
             console.log("authentication failed, user tocken not obtained: " + err);
             res.status(400).send("Server error: " + err);

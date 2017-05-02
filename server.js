@@ -15,14 +15,17 @@ const {winston, redisClient} = require("./globals.js");
 const favicon = require('serve-favicon');
 
 if (process.env.NODE_ENV == 'prod') {
-    var privateKey  = fs.readFileSync('sslcert/server.key', 'utf8');
-    var certificate = fs.readFileSync('sslcert/server.crt', 'utf8');
+    var ca_bundle = fs.readFileSync('sslcert/ca_bundle.crt', 'utf8');
+    var privateKey  = fs.readFileSync('sslcert/private.key', 'utf8');
+    var certificate = fs.readFileSync('sslcert/certificate.crt', 'utf8');
+    var credentials = {ca: ca_bundle, key: privateKey, cert: certificate};
 } else {
     var privateKey  = fs.readFileSync('sslcert/localhost.key', 'utf8');
     var certificate = fs.readFileSync('sslcert/localhost.crt', 'utf8');
+    var credentials = {key: privateKey, cert: certificate};
 }
 
-var credentials = {key: privateKey, cert: certificate};
+
 
 var app = express();
 // serve favicon

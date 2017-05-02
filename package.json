@@ -33,6 +33,7 @@
     "serve-favicon": "^2.4.2",
     "shopify-node-api": "^1.7.6",
     "winston": "^2.3.1",
-    "winston-loggly-bulk": "^1.4.2"
+    "winston-loggly-bulk": "^1.4.2",
+    "xml2js": "^0.4.17"
   }
 }

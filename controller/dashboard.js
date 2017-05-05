@@ -10,6 +10,8 @@ var router = require('express').Router();
 router.get('/ebayexample', (req, res, next) => {
     // instantiate a new client, pass in ebay username
     var ebayclient = new eBayClient('TESTUSER_sellmaster');
+    // ebayclient.get('buy/browse/v1/item_feed', {feed_type: 'DAILY', category_id: '15032', date: '20170502'})
+    // the above and the following are equivalent
     ebayclient.get('buy/browse/v1/item_feed?feed_type=DAILY&category_id=15032&date=20170502')
     .then((result) => {
         console.log(result);

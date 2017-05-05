@@ -4,6 +4,7 @@ const rp = require("request-promise");
 const Promise = require("bluebird");
 const {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey} = require("./utility");
 const {winston, redisClient} = require("../globals.js");
+const fs = require("fs");
 
 
 /**
@@ -11,7 +12,7 @@ const {winston, redisClient} = require("../globals.js");
  **/
 class eBayClient {
     constructor(username) {
-        if (process.env.NODE_ENV == "sandbox") {
+        if (process.env.EBAY_ENV == "sandbox") {
             this.baseUrl = "https://api.sandbox.ebay.com";
         } else {
             this.baseUrl = "https://api.ebay.com";
@@ -19,8 +20,11 @@ class eBayClient {
         this.username = username;
         this.authKey = undefined;
         this.headers = {
+            'Authorization': '',
             'User-Agent': 'SellMaster Ebay Client',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-EBAY-C-MARKETPLACE-ID': 'EBAY-US'
         }
         this.get = this._request('GET');
         this.post = this._request('POST');
@@ -41,33 +45,28 @@ class eBayClient {
                     return redisClient.getAsync(getTockenKey("ebay", client.username))
                     .then((token) => {
                         client.authKey = token.replace(/\"/g, '');
-                        console.log(client.authKey);
                         if (!client.authKey.startsWith('Bearer ')) {
                             client.authKey = 'Bearer ' + client.authKey;
                         }
-                        client.headers.Authorization = client.authKey;
-                        console.log(client.headers);
+                        client.headers['Authorization'] = client.authKey;
                         res(client.headers);
                     }).catch((err) => {
                         rej("Error occured in acquiring ebay access token, please have the store login first: " + err);
                     })
                 }
             }).then((headers) => {
-                console.log('got the headers');
                 return rp({
                     method: method,
                     uri: uri,
                     qs: qs,
                     headers: headers,
-                    body: JSON.stringify(data),
                     resolveWithFullResponse: true,
                     simple: false
                 }).then((response) => {
-                    var body = JSON.parse(response.body);
                     if (response.statusCode >= 200 && response.statusCode < 300) {
-                        return body;
+                        return response.body;
                     } else {
-                        return body;
+                        return response.body;
                     }
                 }).catch((err) => {
                     throw err;

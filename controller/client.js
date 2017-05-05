@@ -16,9 +16,10 @@ class eBayClient {
         } else {
             this.baseUrl = "https://api.ebay.com";
         }
+        this.username = username;
         this.authKey = undefined;
         this.headers = {
-            'User-Agent': 'SellMaster Ebay Client',·
+            'User-Agent': 'SellMaster Ebay Client',
             'Content-Type': 'application/json'
         }
         this.get = this._request('GET');
@@ -35,22 +36,24 @@ class eBayClient {
             console.log(uri);
             return new Promise((res, rej) => {
                 if (typeof client.authKey !== "undefined") {
-                    return client.headers;
+                    res(client.headers);
                 } else {
-                    return redisClient.getAsync(getTockenKey("ebay", username))
+                    return redisClient.getAsync(getTockenKey("ebay", client.username))
                     .then((token) => {
-                        client.authKey = token;
+                        client.authKey = token.replace(/\"/g, '');
+                        console.log(client.authKey);
                         if (!client.authKey.startsWith('Bearer ')) {
-                            client.authKey = `Bearer ${authKey}`;
+                            client.authKey = 'Bearer ' + client.authKey;
                         }
                         client.headers.Authorization = client.authKey;
-                        return client.headers;
+                        console.log(client.headers);
+                        res(client.headers);
                     }).catch((err) => {
-                        throw "Error occured in acquiring ebay access token, please have the store login first: " + err;
+                        rej("Error occured in acquiring ebay access token, please have the store login first: " + err);
                     })
                 }
             }).then((headers) => {
-                console.log("get header:" + headers);
+                console.log('got the headers');
                 return rp({
                     method: method,
                     uri: uri,
@@ -62,12 +65,12 @@ class eBayClient {
                 }).then((response) => {
                     var body = JSON.parse(response.body);
                     if (response.statusCode >= 200 && response.statusCode < 300) {
-                        return res(body);
+                        return body;
                     } else {
-                        return rej(body);
+                        return body;
                     }
                 }).catch((err) => {
-                    return rej(err);
+                    throw err;
                 })
             })
 

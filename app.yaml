@@ -1,4 +1,8 @@
 env: flex
 runtime: nodejs
-includes:
-- .env
+skip_files:
+- ^(.*/)?\.bak$
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 1
+  cool_down_period_sec: 120 # default value

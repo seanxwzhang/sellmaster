@@ -14,4 +14,6 @@ router.use('/auth', require('./controller/auth.js'));
 
 router.use('/dashboard', require('./controller/dashboard.js'));
 
+router.use('/webhook', require('./controller/webhooks.js'));
+
 module.exports = router;

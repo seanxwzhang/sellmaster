@@ -6,7 +6,9 @@ $(document).ready(function () {
     shopifyButton.on('click', (e) => {window.location.href = "/auth/shopify/initiate?storename=" + $("#i1")[0].value;});
     ebayButton.on('click', (e) => {window.location.href = "/auth/ebay/initiate?storename=" + $("#i2")[0].value;});
     var query = {};
-    window.location.href.split('?')[1].split('&').map((q) => {query[q.split('=')[0]] = decodeURIComponent(q.split('=')[1]);});
+    if (window.location.href.indexOf('?') > -1) {
+        window.location.href.split('?')[1].split('&').map((q) => {query[q.split('=')[0]] = decodeURIComponent(q.split('=')[1]);});
+    }
     if (query.message) {
         $.notify({
             icon: 'glyphicon glyphicon-warning-sign',

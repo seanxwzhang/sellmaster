@@ -60,11 +60,9 @@ class eBayClient {
                     uri: uri,
                     qs: qs,
                     headers: headers,
-                    body: JSON.stringify(data),
                     resolveWithFullResponse: true,
                     simple: false
                 }).then((response) => {
-                    fs.writeFileSync('/tmp/tmp.json', JSON.stringify(response));
                     if (response.statusCode >= 200 && response.statusCode < 300) {
                         return response.body;
                     } else {

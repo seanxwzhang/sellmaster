@@ -5,9 +5,9 @@ APP_SECRET=d8bb1ca6f39fd6de9ca5fcceb135ed56
 REDIS_PORT=6379
 REDIS_HOSTNAME=104.198.100.167
 REDIS_PASS=QntM29wN
-UNSECURE_PORT=3000
+UNSECURE_PORT=8080
 SECURE_PORT=8443
-NODE_ENV=dev
+NODE_ENV=prod
 EBAY_ENV=sandbox
 EBAY_SANDBOX_SIGNIN_URL=https://signin.sandbox.ebay.com/authorize?client_id=XiaowenZ-xiaowent-SBX-769e2c47f-c4702561&response_type=code&redirect_uri=Xiaowen_Zhang-XiaowenZ-xiaowe-yahvmbyr&scope=https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/buy.order.readonly https://api.ebay.com/oauth/api_scope/buy.guest.order https://api.ebay.com/oauth/api_scope/sell.marketing.readonly https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.inventory.readonly https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account.readonly https://api.ebay.com/oauth/api_scope/sell.account https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly https://api.ebay.com/oauth/api_scope/sell.fulfillment https://api.ebay.com/oauth/api_scope/sell.analytics.readonly
 EBAY_PROD_SIGNIN_URL=https://signin.ebay.com/authorize?client_id=XiaowenZ-xiaowent-PRD-769e0185b-9a335295&response_type=code&redirect_uri=Xiaowen_Zhang-XiaowenZ-xiaowe-zkwvvllg&scope=https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.marketing.readonly https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.inventory.readonly https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account.readonly https://api.ebay.com/oauth/api_scope/sell.account https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly https://api.ebay.com/oauth/api_scope/sell.fulfillment https://api.ebay.com/oauth/api_scope/sell.analytics.readonly

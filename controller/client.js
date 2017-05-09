@@ -63,6 +63,7 @@ class eBayClient {
                     return redisClient.getAsync(getTockenKey("ebay", client.username))
                     .then((token) => {
                         client.authKey = token.replace(/\"/g, '');
+						console.log(client.authKey);
                         client.headers['X-EBAY-API-IAF-TOKEN'] = client.authKey;
                         client.headers['X-EBAY-API-CALL-NAME'] = apicall;
                         res(client.headers);
@@ -75,7 +76,7 @@ class eBayClient {
                     method: method,
                     uri: client.baseUrl,
                     headers: headers,
-                    body: JSON.stringify(data),
+                    body: data,
                     resolveWithFullResponse: true,
                     simple: false
                 }).then((response) => {
@@ -150,7 +151,10 @@ class ShopifyClient {
         };
         this.authKey = undefined;
 
-
+		this.get = this._request('GET');
+        this.post = this._request('POST');
+        this.put = this._request('PUT');
+        this.delete = this._request('DELETE');
     }
 
     _request(method) {

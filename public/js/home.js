@@ -1,6 +1,7 @@
 "use strict";
 
 $(document).ready(function () {
+    $.material.init();
     var shopifyButton = $("#oauth-button-shopify");
     var ebayButton = $("#oauth-button-ebay");
     shopifyButton.on('click', (e) => {window.location.href = "/auth/shopify/initiate?storename=" + $("#i1")[0].value;});

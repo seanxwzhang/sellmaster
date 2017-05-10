@@ -1,4 +1,7 @@
 "use strict";
+const crypto = require('crypto');
+const {winston, redisClient} = require("../globals");
+const Promise = require('bluebird');
 
 var getStoreName = function(req) {
     if (req.query.storename && req.query.storename != "undefined") {
@@ -26,4 +29,35 @@ var getTockenKey = function(channel, shop) {
     return `${channel}:${shop}:tocken`;
 }
 
-module.exports = {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey};
+var getSessionKey = function(session) {
+    return `session:${session}`;
+}
+
+var getTokenFieldName = function(channel) {
+    return `${channel}Token`
+}
+
+
+var getToeknBySession = function(channel, session) {
+    return redisClient.hgetAsync(getSessionKey(session), getTokenFieldName(channel))
+}
+
+// middle ware for authentication
+var checkSession = function(req, res, next) {
+    if (req.session.id) {
+        Promise.join(
+            getToeknBySession("shopify", req.session.id),
+            getTokenBySession("ebay", req.session.id),
+        (res1, res2) => { // TODO: check validity here?
+            if (res1 === null || res2 === null) {
+                res.redirect('/?message=Please log in first');
+            } else {
+                next();
+            }
+        })
+    } else {
+        res.redirect('/?message=Please log in first');
+    }
+}
+
+module.exports = {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey, getToeknBySession, checkSession};

@@ -4,7 +4,15 @@ const Promise = require("bluebird");
 const {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey} = require("./utility");
 const {winston, redisClient} = require("../globals.js");
 const {eBayClient, ShopifyClient} = require("./client.js");
+const checkSession = require("./utility.js").checkSession;
 var router = require('express').Router();
+
+router.get('/', checkSession, (req, res, next) => {
+    res.render('dashboard',{
+        styles: ['css/sidebar.css','css/dashboard.css'],
+        js: ['js/sidebar.js','js/dashboard.js']
+    });
+})
 
 // this is an example of how to use eBayClient and ShopifyClient
 router.get('/ebayexample', (req, res, next) => {

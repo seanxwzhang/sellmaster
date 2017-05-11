@@ -13,6 +13,8 @@ const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const {winston, redisClient} = require("./globals.js");
 const favicon = require('serve-favicon');
+const session = require('express-session');
+const RedisStore = require('connect-redis')(session);
 
 if (process.env.NODE_ENV == 'prod') {
     var ca_bundle = fs.readFileSync('sslcert/ca_bundle.crt', 'utf8');
@@ -25,16 +27,37 @@ if (process.env.NODE_ENV == 'prod') {
     var credentials = {key: privateKey, cert: certificate};
 }
 
-
-
 var app = express();
+// use session middleware
+app.use(session({
+    store: new RedisStore({
+        host: process.env.REDIS_HOSTNAME,
+        port: process.env.REDIS_PORT,
+        pass: process.env.REDIS_PASS
+    }),
+    secret: process.env.SESSION_SECRET,
+    name: 'sellmaster.sid',
+    resave: true,
+    saveUninitialized: true
+}));
 // serve favicon
 app.use(favicon(__dirname + '/public/favicon.ico'));
 // add body parser middle ware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
 // set view engine
-app.engine('handlebars', exphbs({defaultLayout: 'main'}));
+var hbs = exphbs.create({
+    defaultLayout: 'main',
+    helpers: {
+        linkhref: function(source) {
+            return '<link rel="stylesheet" href="' + source + '" type="text/css">';
+        },
+        productlist: function(List) {
+
+        }
+    }
+})
+app.engine('handlebars', hbs.engine);
 app.set('view engine', 'handlebars');
 // use morgan for logging
 app.use(morgan('short'));

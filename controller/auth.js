@@ -10,6 +10,9 @@ const {eBayClient, ShopifyClient} = require('./client');
 const parseString = require('xml2js').parseString;
 const jwt = require('jsonwebtoken'); // use JWT for eBay nonce encryption
 const fs = require('fs');
+const checkSession = require("./utility.js").checkSession;
+const setTokenIdBySession = require("./utility.js").setTokenIdBySession;
+const Promise = require('bluebird');
 var shopifyAPI = require('shopify-node-api');
 
 router.get('/shopify/initiate', (req, res, next) => {
@@ -71,7 +74,6 @@ router.get('/ebay/initiate', (req, res, next) => {
         crypto.randomBytes(48, (err, buf) => {
             var nonce = buf.toString('hex');
             var token = jwt.sign({ 'userid': userid, 'nonce': nonce }, process.env.JWT_SECRET, { expiresIn: '1h' });
-            console.log("nonce is: " + nonce);
             redisClient.setAsync(getNonceKey('ebay', userid), nonce)
             .then((result) => {
                 var url = process.env.NODE_ENV == 'dev' ? process.env.EBAY_SANDBOX_SIGNIN_URL : process.env.EBAY_PROD_SIGNIN_URL;
@@ -109,11 +111,24 @@ router.get('/shopify/callback', (req, res, next) => {
                 if (process.env.NODE_ENV) console.log(err);
                 res.status(500).send("exchange token wrong");
             } else {
-                redisClient.setAsync(getTockenKey("shopify", config.shop), data['access_token'])
-                .then((result) => {
-                    // console.log(data['access_token']);
-                    res.status(200).send("success!");
+                Promise.join(
+                    redisClient.setAsync(getTockenKey("shopify", config.shop), data['access_token']),
+                    setTokenIdBySession("shopify", req.session.id, data['access_token'], config.shop),
+                    (result1, result2) => {
+                        return checkSession(req);
+                    }
+                ).catch((err) => {
+                    console.log("Error in setting token");
+                    console.log(err);
+                    res.status(500).send(err);
+                }).then((result) => {
+                    if (result.ebay) {
+                        res.redirect('/dashboard');
+                    } else {
+                        res.redirect('/?from_call_back=true');
+                    }
                 })
+
             }
         });
     });
@@ -151,20 +166,23 @@ router.get('/ebay/callback', (req, res, next) => {
                 json: true,
                 resolveWithFullResponse: true
             }).then((response) => {
-                return redisClient.setAsync(getTockenKey("ebay", userid), response.body.access_token)
-                .then((result) => {
-                    console.log(result);
-                    console.log(getTockenKey("ebay", userid));
-                    console.log(response.body.access_token);
-                    res.status(200).send("success");
+                Promise.join(
+                    redisClient.setAsync(getTockenKey("ebay", userid), response.body.access_token),
+                    setTokenIdBySession("ebay", req.session.id, response.body.access_token, userid),
+                    (result1, result2) => {
+                        return checkSession(req);
+                    }
+                ).catch((err) => {
+                    console.log("Error in setting token");
+                    console.log(err);
+                    res.status(500).send(err);
                 }).then((result) => {
-                    console.log(result);
-                    res.status(200).send(result);
-                }).catch((err) => {
-                    console.log("ebay client error: " + err);
-                    res.status(500).send("Sever error: " + err);
+                    if (result.shopify) {
+                        res.redirect('/dashboard');
+                    } else {
+                        res.redirect('/?from_call_back=true');
+                    }
                 })
-
             }).catch((err) => {
                 console.log("authentication failed, user tocken not obtained: " + err);
                 res.status(400).send("Server error: " + err);

@@ -154,7 +154,7 @@ input[type=text] {
   /* Pull out the header and footer */
   .masthead {
     position: fixed;
-    top: 0;
+    top:0px;
   }
   .mastfoot {
     position: fixed;
@@ -178,4 +178,12 @@ input[type=text] {
   .cover-container {
     width: 700px;
   }
+}
+
+#topBar{
+   position:fixed;
+   top:0;
+   left:0;
+   width:100%;
+   background-color:#333;
 }

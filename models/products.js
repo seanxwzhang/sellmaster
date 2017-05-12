@@ -65,6 +65,14 @@ module.exports.getAlleBayProducts = function(req) {
     })
 }
 
+module.exports.getAllShopifyProducts = function(req) {
+    return Promise.join(getTokenBySession("shopify", req.session.id), getIdBySession("shopify", req.session.id), (token, id) => {
+        var shopifyclient = new ShopifyClient(id);
+        return shopifyclient.get('admin/products.json');
+    });
+}
+
+
 var getAllShopifyProducts = function(req) {
 
 }

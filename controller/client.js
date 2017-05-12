@@ -160,7 +160,7 @@ class ShopifyClient {
     _request(method) {
         let client = this;
         return(url, qs, data) => {
-            let uri = [client.baseUrl, url].join('/');
+            let uri = [client.baseUrl, url.replace(/^\//, '')].join('/');
             console.log(uri);
             return new Promise((res, rej) => {
                 if (typeof client.authKey !== "undefined") {

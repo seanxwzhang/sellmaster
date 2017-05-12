@@ -6,6 +6,7 @@ const {winston, redisClient} = require("../globals.js");
 const {eBayClient, ShopifyClient} = require("./client.js");
 const checkSession = require("./utility.js").checkSession;
 const getAlleBayProducts = require("../models/products.js").getAlleBayProducts;
+const getAllShopifyProducts = require("../models/products.js").getAllShopifyProducts;
 const AppError = require("../models/error.js");
 var router = require('express').Router();
 
@@ -32,10 +33,6 @@ router.get('/', sessionAuth, (req, res, next) => {
             id: "ebayProducts",
             data: data
         };
-        var shopifyData = {
-            id: "shopifyProducts",
-            data: data
-        }
         res.render('dashboard', {
             styles: ["css/dashboard.css", "https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css"],
             js: ["js/dashboard.js", "https://cdn.datatables.net/v/dt/dt-1.10.15/datatables.min.js"],
@@ -53,7 +50,27 @@ router.get('/', sessionAuth, (req, res, next) => {
             res.status(500).send(JSON.stringify(err));
         }
     })
+});
+
+router.get('/shopifylist', sessionAuth, (req, res, next) => {
+    getAllShopifyProducts(req)
+    .then((data) => {
+        var parsedData = JSON.parse(data);
+        var shopifyData = {
+            id: "shopifyProducts",
+            data: parsedData.products
+        };
+        res.render('dashboard', {
+            styles: ["../css/dashboard.css", "https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css"],
+            js: ["../js/dashboard.js", "https://cdn.datatables.net/v/dt/dt-1.10.15/datatables.min.js"],
+            shopifyList: shopifyData
+        })
+    }).catch((err) => {
+        console.log(err);
+        res.status(500).send(err);
+    })
 })
+
 
 // this is an example of how to use eBayClient and ShopifyClient
 router.get('/ebayexample', (req, res, next) => {

@@ -22,20 +22,21 @@
         <div class="col-md-12">
             <h3>Hi {{customer.name}}</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li class="active"><a href="#">eBat List</a></li>
-                <li><a href="#">Section</a></li>
+
+                <li {{#if eBayList}} class="active" {{/if}}><a href="/dashboard">eBat List</a></li>
+                <li {{#if shopifyList}} class="active" {{/if}}><a href="/dashboard/shopifyList">Shopify List</a></li>
             </ul>
         </div>
     </div>
     <div id="main">
         {{#if shopifyList }}
             <div class="table-responsive">
-                {{> productlist shopifyList }}
+                {{> productlist1 shopifyList }}
             </div>
         {{/if}}
         {{#if eBayList}}
             <div class="table-responsive">
-                {{> productlist eBayList }}
+                {{> productlist2 eBayList }}
             </div>
         {{/if}}
     </div>

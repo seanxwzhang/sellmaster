@@ -21,7 +21,12 @@
                 <p class="lead">Use Sell Master to synchronize your eBay and Shopify and lower your operational cost</p>
                 <p class="lead">
                     <div class="row">
-                        <div class="form-group label-floating is-empty col-sm-6">
+                        {{#if shopifyLogin}}
+                        {{#if eBayLogin}}
+                        <div class="form-group label-floating col-sm-6">
+                        {{else}}
+                        <div class="form-group label-floating col-sm-6 col-centered">
+                        {{/if}}
                             <label for="i5" class="control-label" style="right: 30%">Your Shopify Store</label>
                             <input type="text" class="form-control" id="i1">
                             <span class="help-block">Enter <code>mystore</code> as in <span class="text-primary">mystore.myshopify.com</span></span>
@@ -29,7 +34,13 @@
                                 <span>Shopify Login</span>
                             </button>
                         </div>
-                        <div class="form-group label-floating is-empty col-sm-6">
+                        {{/if}}
+                        {{#if eBayLogin}}
+                        {{#if shopifyLogin}}
+                        <div class="form-group label-floating col-sm-6">
+                        {{else}}
+                        <div class="form-group label-floating col-sm-6 col-centered">
+                        {{/if}}
                             <label for="i5" class="control-label" style="right: 30%">Your eBay Store</label>
                             <input type="text" class="form-control" id="i2">
                             <span class="help-block">Enter your ebay username</span>
@@ -37,6 +48,14 @@
                                 <span>eBay Login</span>
                             </button>
                         </div>
+                        {{/if}}
+                        {{#if authenticated}}
+                        <div class="form-group label-floating col-sm-6 col-centered">
+                            <a href="/dashboard" class="btn btn-raised btn-success">
+                                Start Synchronizing
+                            </a>
+                        </div>
+                        {{/if}}
                     </div>
 
                 </p>

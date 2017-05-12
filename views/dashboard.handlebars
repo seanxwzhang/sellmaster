@@ -1,34 +1,43 @@
 <div class="navbar navbar-inverse navbar-fixed-top">
     <div class="navbar-header">
-      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-      <a class="navbar-brand" href="#">SellMaster</a>
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="#">SellMaster</a>
     </div>
     <div class="collapse navbar-collapse">
-      <ul class="nav navbar-nav">
-        <li class="active"><a href="#">My products</a></li>
-        <li><a href="#order">Sales</a></li>
-        <li><a href="#webhook">Webhook History</a></li>
-        <li><a href="#contact">Contact and Support</a></li>
-      </ul>
-    </div><!--/.nav-collapse -->
-</div><!--/.navbar -->
+        <ul class="nav navbar-nav">
+            <li class="active"><a href="#">My products</a></li>
+            <li><a href="#order">Sales</a></li>
+            <li><a href="#webhook">Webhook History</a></li>
+            <li><a href="#contact">Contact and Support</a></li>
+        </ul>
+    </div>
+</div>
 
 <div class="row-offcanvas row-offcanvas-left">
-  <div id="sidebar" class="sidebar-offcanvas">
-      <div class="col-md-12">
-        <h3>Hi {{customer.name}}</h3>
-        <ul class="nav nav-pills nav-stacked">
-          <li class="active"><a href="#">Product List</a></li>
-          <li><a href="#">Section</a></li>
-        </ul>
-      </div>
-  </div>
-  <div id="main">
-      {{> productlist shopifyList }}
-      {{> productlist eBayList }}
-  </div>
-</div><!--/row-offcanvas -->
+    <div id="sidebar" class="sidebar-offcanvas">
+        <div class="col-md-12">
+            <h3>Hi {{customer.name}}</h3>
+            <ul class="nav nav-pills nav-stacked">
+                <li class="active"><a href="#">eBat List</a></li>
+                <li><a href="#">Section</a></li>
+            </ul>
+        </div>
+    </div>
+    <div id="main">
+        {{#if shopifyList }}
+            <div class="table-responsive">
+                {{> productlist shopifyList }}
+            </div>
+        {{/if}}
+        {{#if eBayList}}
+            <div class="table-responsive">
+                {{> productlist eBayList }}
+            </div>
+        {{/if}}
+    </div>
+</div>
+</div>

@@ -8,8 +8,8 @@ const fs = require("fs");
 
 
 /**
- * Ebay http client, mode is 'REST' or 'SOAP'
- **/
+* Ebay http client, mode is 'REST' or 'SOAP'
+**/
 class eBayClient {
     constructor(username, mode) {
         this.mode = mode || 'REST';
@@ -60,10 +60,10 @@ class eBayClient {
                 if (typeof client.authKey !== "undefined") {
                     res(client.headers);
                 } else {
+                    console.log(getTockenKey("ebay", client.username));
                     return redisClient.getAsync(getTockenKey("ebay", client.username))
                     .then((token) => {
                         client.authKey = token.replace(/\"/g, '');
-						console.log(client.authKey);
                         client.headers['X-EBAY-API-IAF-TOKEN'] = client.authKey;
                         client.headers['X-EBAY-API-CALL-NAME'] = apicall;
                         res(client.headers);
@@ -140,8 +140,8 @@ class eBayClient {
 
 
 /**
- * Shopify http client
- **/
+* Shopify http client
+**/
 class ShopifyClient {
     constructor(storename) {
         this.storename = storename;
@@ -151,7 +151,7 @@ class ShopifyClient {
         };
         this.authKey = undefined;
 
-		this.get = this._request('GET');
+        this.get = this._request('GET');
         this.post = this._request('POST');
         this.put = this._request('PUT');
         this.delete = this._request('DELETE');

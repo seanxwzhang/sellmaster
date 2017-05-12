@@ -91,4 +91,8 @@ var setTokenIdBySession = function(channel, session, token, id) {
     return redisClient.hmsetAsync(getSessionKey(session), getTokenFieldName(channel), token, getIdFieldName(channel), id);
 }
 
-module.exports = {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey, getTokenBySession, checkSession, setTokenIdBySession};
+var removeTokenIdBySession = function(channel, session) {
+    return redisClient.hdelAsync(getSessionKey(session), getTokenFieldName(channel));
+}
+
+module.exports = {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey, getTokenBySession, checkSession, setTokenIdBySession, getIdBySession, removeTokenIdBySession};

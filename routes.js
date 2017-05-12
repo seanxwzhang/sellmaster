@@ -8,7 +8,7 @@ router.get('/', (req, res, next) => {
     if (req.query.from_call_back) {
         checkSession(req)
         .then((result) => {
-            var message = `Now, please login to your `;
+            var message = `Please login to your `;
             var messageStyle = "success";
             if (!result['shopify'] && result['ebay']) {
                 message += "shopify account";
@@ -19,31 +19,35 @@ router.get('/', (req, res, next) => {
             } else {
                 message = "You are good to go!";
             }
-            console.log(message);
             res.render('home',{
                 styles: ["css/bootstrap-material-design.min.css", "css/ripples.min.css", "css/home.css"],
                 js: ["js/material.min.js","js/home.js"],
                 message: message,
-                messageStyle: messageStyle
+                messageStyle: messageStyle,
+                shopifyLogin: !result.shopify,
+                eBayLogin: !result.ebay,
+                authenticated: result.shopify && result.ebay
             });
         })
     } else {
         checkSession(req)
         .then((result) => {
-            if (result.ebay && result.shopify) {
+            if (result.ebay || result.shopify) {
                 res.render('home',{
                     styles: ["css/bootstrap-material-design.min.css", "css/ripples.min.css", "css/home.css"],
                     js: ["js/material.min.js","js/home.js"],
                     message: "Welcome back!",
                     messageStyle: "success",
-                    topbar: {
-                        text: "<a href='/dashboard'>Go to My Dashboard</a>"
-                    }
+                    shopifyLogin: !result.shopify,
+                    eBayLogin: !result.ebay,
+                    authenticated: result.shopify && result.ebay
                 });
             } else {
                 res.render('home',{
                     styles: ["css/bootstrap-material-design.min.css", "css/ripples.min.css", "css/home.css"],
-                    js: ["js/material.min.js","js/home.js"]
+                    js: ["js/material.min.js","js/home.js"],
+                    shopifyLogin: true,
+                    eBayLogin: true
                 });
             }
         })

@@ -49,3 +49,16 @@ body {
     top: 0;
   }
 }
+
+.vr {
+    width:10px;
+    background-color:#000;
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:150px;
+}
+
+#shopifyProducts {
+  border-right: 1px solid #333;
+}

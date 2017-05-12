@@ -5,15 +5,54 @@ const {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey} = requ
 const {winston, redisClient} = require("../globals.js");
 const {eBayClient, ShopifyClient} = require("./client.js");
 const checkSession = require("./utility.js").checkSession;
+const getAlleBayProducts = require("../models/products.js").getAlleBayProducts;
+const AppError = require("../models/error.js");
 var router = require('express').Router();
 
+var sessionAuth = function(req, res, next) {
+    if (req.session.id) {
+        checkSession(req)
+        .then((result) => {
+            if (result.ebay && result.shopify) {
+                next();
+            } else {
+                res.redirect('/?from_call_back=true');
+            }
+        })
+    } else {
+        res.redirect('/');
+    }
+};
 
 
-router.get('/', (req, res, next) => {
-    res.render('dashboard',{
-        styles: ['css/sidebar.css','css/dashboard.css'],
-        js: ['js/sidebar.js','js/dashboard.js']
-    });
+router.get('/', sessionAuth, (req, res, next) => {
+    getAlleBayProducts(req)
+    .then((data) => {
+        var ebayData = {
+            id: "ebayProducts",
+            data: data
+        };
+        var shopifyData = {
+            id: "shopifyProducts",
+            data: data
+        }
+        res.render('dashboard', {
+            styles: ["css/dashboard.css", "https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css"],
+            js: ["js/dashboard.js", "https://cdn.datatables.net/v/dt/dt-1.10.15/datatables.min.js"],
+            eBayList: ebayData
+        })
+    }).catch((err) => {
+        console.log(err);
+        if (err instanceof AppError) {
+            if (err.type == "authentication") {
+                res.redirect("/from_call_back=true");
+            } else {
+                res.status(500).send(JSON.stringify(err));
+            }
+        } else {
+            res.status(500).send(JSON.stringify(err));
+        }
+    })
 })
 
 // this is an example of how to use eBayClient and ShopifyClient

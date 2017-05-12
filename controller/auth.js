@@ -76,7 +76,7 @@ router.get('/ebay/initiate', (req, res, next) => {
             var token = jwt.sign({ 'userid': userid, 'nonce': nonce }, process.env.JWT_SECRET, { expiresIn: '1h' });
             redisClient.setAsync(getNonceKey('ebay', userid), nonce)
             .then((result) => {
-                var url = process.env.NODE_ENV == 'dev' ? process.env.EBAY_SANDBOX_SIGNIN_URL : process.env.EBAY_PROD_SIGNIN_URL;
+                var url = process.env.EBAY_ENV == 'sandbox' ? process.env.EBAY_SANDBOX_SIGNIN_URL : process.env.EBAY_PROD_SIGNIN_URL;
                 url += `&state=${token}`;
                 res.redirect(url);
             })

@@ -1,0 +1,39 @@
+{
+  "name": "adf-widget-randommsg",
+  "version": "0.1.2",
+  "main": "dist/adf-widget-randommsg.js",
+  "ignore": [
+    "bower.json",
+    ".bowerrc",
+    ".jshintrc",
+    ".gitignore",
+    "gulpfile.js",
+    "node_modules",
+    "package.json",
+    "components",
+    "src"
+  ],
+  "keywords": [
+    "dashboard",
+    "widget",
+    "adf",
+    "adf-widget"
+  ],
+  "description": "Random message widget for the angular-dashboard-framework",
+  "dependencies": {
+    "angular-dashboard-framework": "0.8.0"
+  },
+  "devDependencies": {
+    "angular-local-storage": "0.1.5"
+  },
+  "homepage": "https://github.com/angular-dashboard-framework/adf-widget-randommsg",
+  "_release": "0.1.2",
+  "_resolution": {
+    "type": "version",
+    "tag": "v0.1.2",
+    "commit": "c7727d30418b963940ba772141df6fba8415c729"
+  },
+  "_source": "https://github.com/angular-dashboard-framework/adf-widget-randommsg.git",
+  "_target": "^0.1.0",
+  "_originalSource": "adf-widget-randommsg"
+}

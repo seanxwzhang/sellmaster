@@ -13,6 +13,8 @@ const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const {winston, redisClient} = require("./globals.js");
 const favicon = require('serve-favicon');
+const compression = require('compression');
+
 
 if (process.env.NODE_ENV == 'prod') {
     var ca_bundle = fs.readFileSync('sslcert/ca_bundle.crt', 'utf8');
@@ -30,6 +32,8 @@ if (process.env.NODE_ENV == 'prod') {
 var app = express();
 // serve favicon
 app.use(favicon(__dirname + '/public/favicon.ico'));
+// compression
+app.use(compression());
 // add body parser middle ware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));

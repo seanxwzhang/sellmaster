@@ -18,7 +18,7 @@ class eBayClient {
         }
         this.authKey = undefined;
         this.headers = {
-            'User-Agent': 'SellMaster Ebay Client',·
+            'User-Agent': 'SellMaster Ebay Client',
             'Content-Type': 'application/json'
         }
         this.get = this._request('GET');

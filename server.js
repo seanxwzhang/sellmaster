@@ -28,6 +28,8 @@ if (process.env.NODE_ENV == 'prod') {
 }
 
 var app = express();
+// handle google health check before use session
+app.get('/_ah/health', (req, res, next) => {res.status(200).send('OK');});
 // use session middleware
 app.use(session({
     store: new RedisStore({

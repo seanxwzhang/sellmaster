@@ -1,0 +1,31 @@
+<table id={{id}} class="display" cellspacing="0" width="100%">
+        <thead>
+            <tr>
+                <th>ItemID</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>SKU</th>
+                <th>ViewItemURL</th>
+            </tr>
+        </thead>
+        <tfoot>
+            <tr>
+                <th>ItemID</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>SKU</th>
+                <th>ViewItemURL</th>
+            </tr>
+        </tfoot>
+        <tbody>
+            {{#each data}}
+            <tr>
+                <td>{{this.ItemID}}</td>
+                <td>{{this.Title}}</td>
+                <td>{{this.PrimaryCategory.[0].CategoryName}}</td>
+                <td>{{this.SKU}}</td>
+                <td>{{this.ListingDetails.[0].ViewItemURL}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>

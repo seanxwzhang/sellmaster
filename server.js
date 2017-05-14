@@ -14,6 +14,8 @@ const bodyParser = require('body-parser');
 const {winston, redisClient} = require("./globals.js");
 const favicon = require('serve-favicon');
 const compression = require('compression');
+const session = require('express-session');
+const RedisStore = require('connect-redis')(session);
 
 
 if (process.env.NODE_ENV == 'prod') {
@@ -27,9 +29,19 @@ if (process.env.NODE_ENV == 'prod') {
     var credentials = {key: privateKey, cert: certificate};
 }
 
-
-
 var app = express();
+// use session middleware
+app.use(session({
+    store: new RedisStore({
+        host: process.env.REDIS_HOSTNAME,
+        port: process.env.REDIS_PORT,
+        pass: process.env.REDIS_PASS
+    }),
+    secret: process.env.SESSION_SECRET,
+    name: 'sellmaster.sid',
+    resave: true,
+    saveUninitialized: true
+}));
 // serve favicon
 app.use(favicon(__dirname + '/public/favicon.ico'));
 // compression
@@ -38,7 +50,41 @@ app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
 // set view engine
-app.engine('handlebars', exphbs({defaultLayout: 'main'}));
+var hbs = exphbs.create({
+    defaultLayout: 'main',
+    helpers: {
+        linkhref: function(source) {
+            return '<link rel="stylesheet" href="' + source + '" type="text/css">';
+        },
+        ifCond: function (v1, operator, v2, options) {
+            switch (operator) {
+                case '==':
+                    return (v1 == v2) ? options.fn(this) : options.inverse(this);
+                case '===':
+                    return (v1 === v2) ? options.fn(this) : options.inverse(this);
+                case '!=':
+                    return (v1 != v2) ? options.fn(this) : options.inverse(this);
+                case '!==':
+                    return (v1 !== v2) ? options.fn(this) : options.inverse(this);
+                case '<':
+                    return (v1 < v2) ? options.fn(this) : options.inverse(this);
+                case '<=':
+                    return (v1 <= v2) ? options.fn(this) : options.inverse(this);
+                case '>':
+                    return (v1 > v2) ? options.fn(this) : options.inverse(this);
+                case '>=':
+                    return (v1 >= v2) ? options.fn(this) : options.inverse(this);
+                case '&&':
+                    return (v1 && v2) ? options.fn(this) : options.inverse(this);
+                case '||':
+                    return (v1 || v2) ? options.fn(this) : options.inverse(this);
+                default:
+                    return options.inverse(this);
+            }
+        }
+    }
+})
+app.engine('handlebars', hbs.engine);
 app.set('view engine', 'handlebars');
 // use morgan for logging
 app.use(morgan('short'));
@@ -49,6 +95,7 @@ app.use('/', require('./routes.js'));
 
 // define error handler
 app.use((err, req, res, next) => {
+    console.log(err);
     res.status(err.status || 500);
     res.send({
         "msg": "Server error",

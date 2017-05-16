@@ -4,7 +4,8 @@ const {winston, redisClient} = require("../globals");
 const Promise = require('bluebird');
 const rp = require('request-promise');
 const moment = require('moment');
-const {eBayClient, ShopifyClient} = require("./client.js");
+const AppError = require('../models/error');
+// const {eBayClient, ShopifyClient} = require("./client.js");
 
 var getStoreName = function(req) {
   if (req.query.storename && req.query.storename != "undefined") {
@@ -28,7 +29,7 @@ var getNonceKey = function(channel, shop) {
   return `${channel}:${shop}:nonce`;
 }
 
-var getTockenKey = function(channel, shop) {
+var getTokenKey = function(channel, shop) {
   return `${channel}:${shop}:tocken`;
 }
 
@@ -80,16 +81,20 @@ var checkSession = function(req) {
       console.log(req.session.id);
       redisClient.hgetallAsync(getSessionKey(req.session.id))
       .then((obj) => {
+        if (!obj) {
+          resolve(result);
+        }
         if (getTokenFieldName("shopify") in obj) {
           result['shopify'] = true;
         }
         if (getTokenFieldName("ebay") in obj && 'ebaylast_refreshed_at' in obj && 'ebayrefresh_token' in obj && 'ebayexpires_in' in obj) {
           var last_updated_at = moment(obj[`ebaylast_refreshed_at`]);
           var refresh_token = obj[`ebayrefresh_token`];
-          var max_difference = obj['ebayexpires_in'] - 120;
+          var max_difference = obj['ebayexpires_in'] - 7000;
           var difference = moment().diff(last_updated_at, 'seconds');
-          // console.log(last_updated_at.format());
-          // console.log(moment().format());
+          console.log(last_updated_at.format());
+          console.log(moment().format());
+          // console.log(obj['ebayToken']);
           if (difference >= max_difference) { // refresh the token
             if (process.env.NODE_ENV == 'dev') {
               var credential = 'Basic ' + Buffer.from(`${process.env.EBAY_SANDBOX_CLIENT_ID}:${process.env.EBAY_SANDBOX_CLIENT_SECRET}`).toString('base64');
@@ -136,5 +141,15 @@ var checkSession = function(req) {
   })
 }
 
+var checkAuthError = function(response) {
+  for (let key in response) {
+    if ('Ack' in response[key] && response[key]['Ack'][0] == 'Failure' && response[key]['Errors'][0]['ShortMessage'][0].toLowerCase().indexOf('expire') > -1) {
+      throw new AppError("expired", "authentication");
+    }
+  }
+}
 
-module.exports = {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey, getTokenBySession, checkSession, setTokenIdBySession, getIdBySession, removeTokenIdBySession};
+module.exports = {getStoreName, getScope, getCallbackUrl, getNonceKey, getTokenKey, getTokenBySession, checkSession, setTokenIdBySession, getIdBySession, removeTokenIdBySession, checkAuthError};
+
+module.exports.test = 1;
+// console.log(module.exports);

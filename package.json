@@ -20,6 +20,7 @@
   "dependencies": {
     "bluebird": "^3.5.0",
     "body-parser": "^1.17.1",
+    "body-parser-xml": "^1.1.0",
     "compression": "^1.6.2",
     "connect-redis": "^3.3.0",
     "consolidate": "^0.14.5",
@@ -41,6 +42,7 @@
     "shopify-node-api": "^1.7.6",
     "winston": "^2.3.1",
     "winston-loggly-bulk": "^1.4.2",
-    "xml2js": "^0.4.17"
+    "xml2js": "^0.4.17",
+    "xmlbuilder": "^9.0.0"
   }
 }

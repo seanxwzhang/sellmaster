@@ -5,6 +5,7 @@
 var builder = require('xmlbuilder');
 var parser = require('xml2js');
 var router = require('express').Router();
+var util = require('util');
 const {eBayClient, ShopifyClient} = require('./client.js');
 
 /**
@@ -182,7 +183,7 @@ router.get('/testActiveItem/ebay',(req,res,err) => {
 	.then((result) => {
         
 		parser.parseString(result,function(err,resdata){
-			console.dir(resdata);
+			console.log(util.inspect(resdata,false,null));
 			res.status(200).send(JSON.stringify(resdata,null,2));
 			
 		});
@@ -233,9 +234,21 @@ var test = {
 	
 });
 
+//skeleton respond to ebay webhook, respond with 200 and empty message
+//use req.body.nameofattribute to access attributes
+router.post('/testeBayWebhook',(req,res,err) =>{
+	res.status(200).end();
+	console.log(util.inspect(req.body, false, null));
+	//console.log(req.body.GetSellerListResponse.Ack[0]);
+	
+});
 
-
-
+//skeleton respond to shopify webhook, respond with 200 and empty message
+router.post('/testShopifyWebhook',(req,res,err) =>{
+	res.status(200).end();
+	console.log(util.inspect(req.body, false, null));
+		
+});
 
 
 /**

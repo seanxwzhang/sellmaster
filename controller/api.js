@@ -7,6 +7,7 @@ const {eBayClient, ShopifyClient} = require("./client.js");
 const checkSession = require("./utility.js").checkSession;
 const getAlleBayProducts = require("../models/products.js").getAlleBayProducts;
 const getAllShopifyProducts = require("../models/products.js").getAllShopifyProducts;
+const getActiveSellings = require("../models/products.js").getActiveSellings;
 const AppError = require("../models/error.js");
 var router = require('express').Router();
 
@@ -26,23 +27,15 @@ var sessionAuth = function(req, res, next) {
 };
 
 
-router.get('/', sessionAuth, (req, res, next) => {
-    getAlleBayProducts(req)
+router.get('/ebaylist', sessionAuth, (req, res, next) => {
+    getActiveSellings(req)
     .then((data) => {
-        var ebayData = {
-            id: "ebayProducts",
-            data: data
-        };
-        res.render('dashboard', {
-            styles: ["css/dashboard.css", "https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css"],
-            js: ["js/dashboard.js", "https://cdn.datatables.net/v/dt/dt-1.10.15/datatables.min.js"],
-            eBayList: ebayData
-        })
+        res.status(200).send({products: data});
     }).catch((err) => {
         console.log(err);
         if (err instanceof AppError) {
             if (err.type == "authentication") {
-                res.redirect("/from_call_back=true");
+                res.redirect("/?from_call_back=true");
             } else {
                 res.status(500).send(JSON.stringify(err));
             }
@@ -56,15 +49,7 @@ router.get('/shopifylist', sessionAuth, (req, res, next) => {
     getAllShopifyProducts(req)
     .then((data) => {
         var parsedData = JSON.parse(data);
-        var shopifyData = {
-            id: "shopifyProducts",
-            data: parsedData.products
-        };
-        res.render('dashboard', {
-            styles: ["../css/dashboard.css", "https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css"],
-            js: ["../js/dashboard.js", "https://cdn.datatables.net/v/dt/dt-1.10.15/datatables.min.js"],
-            shopifyList: shopifyData
-        })
+        res.status(200).send(parsedData);
     }).catch((err) => {
         console.log(err);
         res.status(500).send(err);
@@ -72,24 +57,6 @@ router.get('/shopifylist', sessionAuth, (req, res, next) => {
 })
 
 
-// this is an example of how to use eBayClient and ShopifyClient
-router.get('/ebayexample', (req, res, next) => {
-    // instantiate a new client, pass in ebay username
-    var ebayclient = new eBayClient('TESTUSER_sellmaster');
-    // ebayclient.get('buy/browse/v1/item_feed', {feed_type: 'DAILY', category_id: '15032', date: '20170502'})
-    // the above and the following are equivalent
-    ebayclient.get('buy/browse/v1/item_feed?feed_type=DAILY&category_id=15032&date=20170502')
-    .then((result) => {
-        console.log(result);
-        res.status(200).send(result);
-    }).catch((err) => {
-        console.log(err);
-    })
-})
-
-router.get('/shopifyexample', (req, res, next) => {
-
-})
 
 /**
  * user starts synchronize between two stores,

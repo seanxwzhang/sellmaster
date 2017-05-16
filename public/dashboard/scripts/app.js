@@ -29,7 +29,7 @@ angular.module('adfDynamicSample', [
     'adf.widget.clock', 'adf.widget.github', 'adf.widget.iframe',
     'adf.widget.linklist', 'adf.widget.markdown', 'adf.widget.news',
     'adf.widget.randommsg', 'adf.widget.version', 'adf.widget.weather','adf.widget.clock',
-    'adf.widget.table'
+    'adf.widget.table', 'ng-mfb'
   ])
   .config(function($routeProvider){
     $routeProvider
@@ -53,7 +53,6 @@ angular.module('adfDynamicSample', [
         var deferred = $q.defer();
         $http.get('/v1/store')
           .success(function(data){
-            console.log(data);
             deferred.resolve(data.dashboards);
           })
           .error(function(){
@@ -153,4 +152,12 @@ angular.module('adfDynamicSample', [
     $scope.$on('adfDashboardChanged', function(event, name, model) {
       storeService.set(name, model);
     });
+
+    $scope.buttons = [{
+      label: 'synchronize products',
+      icon: 'ion-android-sync',
+      click: function() {
+          console.log("I'm clicked!");
+      }
+    }];
   });

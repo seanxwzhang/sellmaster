@@ -155,6 +155,45 @@ router.get('/testReviseItemQuantity/ebay/:itemid/:newquantity',(req,res,err) =>{
 	
 });
 
+//get active selling item only
+router.get('/testActiveItem/ebay',(req,res,err) => {
+	var ebayclient = new eBayClient('testuser_shuangzhang','SOAP');
+	
+	var xmlbdy = {
+		'GetMyeBaySellingRequest':{
+			'@xmlns':  'urn:ebay:apis:eBLBaseComponents',
+			'ErrorLanguage' : 'en_US',
+			'WarningLevel' : 'High',		
+			'ActiveList' :{
+				'Pagination' :{
+					'EntriesPerPage' : 200,
+					'PageNumber' : 1
+				}
+			}
+		}
+	};
+	var xml = builder.create(xmlbdy,{encoding: 'utf-8'});
+	
+	var str = xml.end({pretty:true,indent: ' ',newline : '\n'});
+
+	console.log(str);
+	
+    ebayclient.post('GetMyeBaySelling',str)
+	.then((result) => {
+        
+		parser.parseString(result,function(err,resdata){
+			console.dir(resdata);
+			res.status(200).send(JSON.stringify(resdata,null,2));
+			
+		});
+        
+    }).catch((err) => {
+        console.log(err);
+    }); 
+	
+});
+
+
 router.get('/testInventoryItem/ebay',(req,res,err) => {
 	var ebayclient = new eBayClient('testuser_shuangzhang','SOAP');
 	
@@ -165,10 +204,10 @@ var test = {
 		'WarningLevel' : 'High',		
 		'GranularityLevel' : 'Coarse',
 		'StartTimeFrom' : '2017-05-01T21:59:59.005Z',
-		'StartTimeTo' : '2017-05-10T21:59:59.005Z',
+		'StartTimeTo' : '2017-05-15T21:59:59.005Z',
 		'IncludeWatchCount' : true,
 		'Pagination' :{
-			'EntriesPerPage' : 2
+			'EntriesPerPage' : 200
 		}
 	}
 };
@@ -184,7 +223,7 @@ var test = {
         //console.log(result);
 		parser.parseString(result,function(err,resdata){
 			console.dir(resdata);
-			res.status(200).send(resdata);
+			res.status(200).send(JSON.stringify(resdata,null,2));
 			
 		});
         

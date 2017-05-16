@@ -7,7 +7,8 @@ const {eBayClient, ShopifyClient} = require("./client.js");
 const checkSession = require("./utility.js").checkSession;
 const getAlleBayProducts = require("../models/products.js").getAlleBayProducts;
 const getAllShopifyProducts = require("../models/products.js").getAllShopifyProducts;
-const getActiveSellings = require("../models/products.js").getActiveSellings;
+const getActiveEbaySellings = require("../models/products.js").getActiveEbaySellings;
+const getAllActiveEbaySellings = require("../models/products.js").getAllActiveEbaySellings;
 const AppError = require("../models/error.js");
 var router = require('express').Router();
 
@@ -26,9 +27,15 @@ var sessionAuth = function(req, res, next) {
     }
 };
 
+router.get('/testapi', sessionAuth, (req, res, next) => {
+    getAllActiveEbaySellings(req)
+    .then((data) => {
+        res.status(200).send({products: data});
+    })
+})
 
 router.get('/ebaylist', sessionAuth, (req, res, next) => {
-    getActiveSellings(req)
+    getActiveEbaySellings(req)
     .then((data) => {
         res.status(200).send({products: data});
     }).catch((err) => {

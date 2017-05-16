@@ -72,7 +72,7 @@ module.exports.getAllShopifyProducts = function(req) {
     });
 }
 
-module.exports.getActiveSellings = function(req) {
+module.exports.getActiveEbaySellings = function(req) {
     return Promise.join(getTokenBySession("ebay", req.session.id), getIdBySession("ebay", req.session.id), (token, id) => {
         var ebayclient = new eBayClient(id, 'SOAP');
         var xmlbdy = {
@@ -106,4 +106,41 @@ module.exports.getActiveSellings = function(req) {
             console.log(err);
         });
     });
+}
+
+module.exports.getNumberofActiveEbayListings = function(req) {
+    var ebayclient = new eBayClient(id, 'SOAP');
+    var xmlbdy = {
+        'GetMyeBaySellingRequest':{
+            '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
+            'ErrorLanguage' : 'en_US',
+            'WarningLevel' : 'High',
+            'ActiveList' :{
+                'Pagination' :{
+                    'EntriesPerPage' : 1,
+                    'PageNumber' : 1
+                }
+            }
+        }
+    };
+    var xml = builder.create(xmlbdy,{encoding: 'utf-8'});
+    var str = xml.end({pretty:true,indent: ' ',newline : '\n'});
+    return ebayclient.post('GetMyeBaySelling',str)
+    .then((result) => {
+        return new Promise((resolve, reject) => {
+            parse.parseString(result, (err, data) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(data.GetMyeBaySellingResponse.ActiveList[0].PaginationResult[0]);
+                }
+            })
+        })
+    })
+}
+
+module.exports.getAllActiveEbaySellings = function(req) {
+    return Promise.join(getTokenBySession("ebay", req.session.id), getIdBySession("ebay", req.session.id), (token, id) => {
+        return exports.getNumberofActiveEbayListings(id)
+    })
 }

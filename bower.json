@@ -27,7 +27,8 @@
     "adf-widget-randommsg": "^0.1.0",
     "adf-widget-linklist": "^0.1.0",
     "adf-widget-news": "^0.1.0",
-    "adf-widget-version": "^0.1.0"
+    "adf-widget-version": "^0.1.0",
+    "adf-widget-table": "^0.1.0"
   },
   "resolutions": {
     "angular": "1.4.x",

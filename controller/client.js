@@ -75,6 +75,7 @@ class eBayClient {
           })
         }
       }).then((headers) => {
+        console.log(`${method}  ${client.baseUrl} ${apicall}`);
         return rp({
           method: method,
           uri: client.baseUrl,
@@ -99,7 +100,7 @@ class eBayClient {
     let client = this;
     return (url, qs, data) => {
       let uri = [client.baseUrl, url].join('/');
-      console.log(uri);
+      console.log(`${method}  ${uri}`);
       return new Promise((res, rej) => {
         if (typeof client.authKey !== "undefined") {
           res(client.headers);
@@ -165,7 +166,7 @@ class ShopifyClient {
     let client = this;
     return(url, qs, data) => {
       let uri = [client.baseUrl, url.replace(/^\//, '')].join('/');
-      console.log(uri);
+      console.log(`${method}  ${uri}`);
       return new Promise((res, rej) => {
         if (typeof client.authKey !== "undefined") {
           res(client.headers);
@@ -180,7 +181,7 @@ class ShopifyClient {
           })
         }
       }).then((headers) => {
-        console.log(data);
+        // console.log(data);
         return rp({
           method: method,
           uri: uri,
@@ -189,7 +190,7 @@ class ShopifyClient {
           body: data,
           resolveWithFullResponse: true,
           simple: false,
-          json: true
+          json: data ? true:false
         }).then((response) => {
           var fs = require('fs');
           fs.writeFileSync('/tmp/fs.json', JSON.stringify(response));

@@ -21,14 +21,17 @@ var xmlbdyGenerator = function(request, epp, pn) {
     return  {
       'GetMyeBaySellingRequest':{
         '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
-        'ErrorLanguage' : 'en_US',
-        'WarningLevel' : 'High',
         'ActiveList' :{
+          'Include': true,
+          'IncludeNotes': true,
           'Pagination' :{
             'EntriesPerPage' : epp,
             'PageNumber' : pn
           }
-        }
+        },
+        'ErrorLanguage' : 'en_US',
+        'WarningLevel' : 'High',
+        'DetailLevel': 'ReturnAll',
       }
     };
     case 'GetSellerListRequest':
@@ -57,12 +60,13 @@ var xmlbdyGenerator = function(request, epp, pn) {
 module.exports.getAlleBayProducts = function(req) {
   return Promise.join(getTokenBySession("ebay", req.session.id), getIdBySession("ebay", req.session.id), (token, id) => {
     var ebayclient = new eBayClient(id, 'SOAP');
-    var requestBody = xmlbdyGenerator('GetSellerListRequest', 1, 200);
+    var requestBody = xmlbdyGenerator('GetSellerListRequest', 200, 1);
     var xml = builder.create(requestBody, {encoding: 'utf-8'});
     var str = xml.end({pretty:true, indent: ' ', newline: '\n'});
-    // console.log(str);
+    console.log(str);
     return ebayclient.post('GetSellerList', str)
     .then((result) => {
+      // console.log(result);
       return new Promise((resolve, reject) => {
         parser.parseString(result, (err, data) => {
           if (err) {
@@ -79,6 +83,7 @@ module.exports.getAlleBayProducts = function(req) {
           }
         })
       }).catch((err) => {
+        console.log(err);
         if (err == "token expired") {
           throw new AppError("token expired", "authentication");
         } else {
@@ -102,6 +107,7 @@ module.exports.getActiveEbaySellings = function(req) {
     var xmlbdy = xmlbdyGenerator('GetMyeBaySellingRequest', 200, 1);
     var xml = builder.create(xmlbdy,{encoding: 'utf-8'});
     var str = xml.end({pretty:true,indent: ' ',newline : '\n'});
+    console.log(str);
     return ebayclient.post('GetMyeBaySelling',str)
     .then((result) => {
       return new Promise((resolve, reject) => {
@@ -159,6 +165,7 @@ module.exports.getAllActiveEbaySellings = function(req) {
       let xml = builder.create(xmlbdy,{encoding: 'utf-8'});
       strs.push(xml.end({pretty:true,indent: ' ',newline : '\n'}));
     }
+
 
   })
 }

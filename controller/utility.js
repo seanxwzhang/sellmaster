@@ -93,10 +93,13 @@ var checkSession = function(req) {
           var refresh_token = obj[`ebayrefresh_token`];
           var max_difference = obj['ebayexpires_in'] - 7000;
           var difference = moment().diff(last_updated_at, 'seconds');
+          var ebayid = obj[`ebayId`];
           console.log(last_updated_at.format());
           console.log(moment().format());
           // console.log(obj['ebayToken']);
-          if (difference >= max_difference) { // refresh the token
+          // if (difference >= max_difference) { // refresh the token
+          if (true) {
+            console.log("refreshing tocken!");
             if (process.env.NODE_ENV == 'dev') {
               var credential = 'Basic ' + Buffer.from(`${process.env.EBAY_SANDBOX_CLIENT_ID}:${process.env.EBAY_SANDBOX_CLIENT_SECRET}`).toString('base64');
               var RuName = process.env.RUNAME_SANDBOX;
@@ -115,12 +118,17 @@ var checkSession = function(req) {
               json: true,
               resolveWithFullResponse: true
             }).then((response) => {
+              console.log(response.body);
               if (response.statusCode >= 200 && response.statusCode < 300) {
-                redisClient.hmsetAsync(getSessionKey(req.session.id), getTokenFieldName("ebay"), response.body.access_token, 'ebayexpires_in', response.body.expires_in,  `ebaylast_refreshed_at`, moment().format())
-                .then((ans) => {
-                  result['ebay'] = true;
-                  resolve(result);
-                })
+                Promise.join(
+                  redisClient.hmsetAsync(getSessionKey(req.session.id), getTokenFieldName("ebay"), response.body.access_token, 'ebayexpires_in', response.body.expires_in,  `ebaylast_refreshed_at`, moment().format()),
+                  redisClient.setAsync(getTokenKey("ebay", ebayid), response.body.access_token),
+                  (ans1, ans2) => {
+                    console.log("token refreshed");
+                    result['ebay'] = true;
+                    resolve(result);
+                  }
+                )
               } else {
                 result['ebay'] = false;
                 resolve(result);

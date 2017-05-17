@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const rp = require('request-promise');
 const request = require('request');
 const {winston, redisClient} = require("../globals");
-const {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey} = require("./utility");
+const {getStoreName, getScope, getCallbackUrl, getNonceKey, getTokenKey} = require("./utility");
 const {eBayClient, ShopifyClient} = require('./client');
 const parseString = require('xml2js').parseString;
 const jwt = require('jsonwebtoken'); // use JWT for eBay nonce encryption
@@ -112,7 +112,7 @@ router.get('/shopify/callback', (req, res, next) => {
                 res.status(500).send("exchange token wrong");
             } else {
                 Promise.join(
-                    redisClient.setAsync(getTockenKey("shopify", config.shop), data['access_token']),
+                    redisClient.setAsync(getTokenKey("shopify", config.shop), data['access_token']),
                     setTokenIdBySession("shopify", req.session.id, data['access_token'], config.shop),
                     (result1, result2) => {
                         return checkSession(req);
@@ -168,7 +168,7 @@ router.get('/ebay/callback', (req, res, next) => {
             }).then((response) => {
                 // console.log(response.body);
                 Promise.join(
-                    redisClient.setAsync(getTockenKey("ebay", userid), response.body.access_token),
+                    redisClient.setAsync(getTokenKey("ebay", userid), response.body.access_token),
                     setTokenIdBySession("ebay", req.session.id, response.body.access_token, userid, response.body.expires_in, response.body.refresh_token, response.body.refresh_token_expires_in),
                     (result1, result2) => {
                         return checkSession(req);

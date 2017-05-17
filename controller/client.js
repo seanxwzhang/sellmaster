@@ -1,11 +1,14 @@
 "use strict";
 
+const getStoreName = require("./utility").getStoreName;
+const getScope = require("./utility").getScope;
+const getCallbackUrl = require("./utility").getCallbackUrl;
+const getNonceKey = require("./utility").getNonceKey;
+const getTokenKey = require("./utility").getTokenKey;
 const rp = require("request-promise");
 const Promise = require("bluebird");
-const {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey} = require("./utility");
 const {winston, redisClient} = require("../globals.js");
 const fs = require("fs");
-
 
 /**
 * Ebay http client, mode is 'REST' or 'SOAP'
@@ -60,8 +63,8 @@ class eBayClient {
         if (typeof client.authKey !== "undefined") {
           res(client.headers);
         } else {
-          console.log(getTockenKey("ebay", client.username));
-          return redisClient.getAsync(getTockenKey("ebay", client.username))
+          console.log(getTokenKey("ebay", client.username));
+          return redisClient.getAsync(getTokenKey("ebay", client.username))
           .then((token) => {
             client.authKey = token.replace(/\"/g, '');
             client.headers['X-EBAY-API-IAF-TOKEN'] = client.authKey;
@@ -101,7 +104,7 @@ class eBayClient {
         if (typeof client.authKey !== "undefined") {
           res(client.headers);
         } else {
-          return redisClient.getAsync(getTockenKey("ebay", client.username))
+          return redisClient.getAsync(getTokenKey("ebay", client.username))
           .then((token) => {
             client.authKey = token.replace(/\"/g, '');
             if (!client.authKey.startsWith('Bearer ')) {
@@ -119,9 +122,10 @@ class eBayClient {
           uri: uri,
           qs: qs,
           headers: headers,
-          body: JSON.stringify(data),
+          body: data,
           resolveWithFullResponse: true,
-          simple: false
+          simple: false,
+          json: true
         }).then((response) => {
           if (response.statusCode >= 200 && response.statusCode < 300) {
             return response.body;
@@ -166,7 +170,7 @@ class ShopifyClient {
         if (typeof client.authKey !== "undefined") {
           res(client.headers);
         } else {
-          return redisClient.getAsync(getTockenKey("shopify", client.storename))
+          return redisClient.getAsync(getTokenKey("shopify", client.storename))
           .then((token) => {
             client.authKey = token.replace(/\"/g, '');
             client.headers['X-Shopify-Access-Token'] = client.authKey;
@@ -176,15 +180,20 @@ class ShopifyClient {
           })
         }
       }).then((headers) => {
+        console.log(data);
         return rp({
           method: method,
           uri: uri,
           qs: qs,
           headers: headers,
-          body: JSON.stringify(data),
+          body: data,
           resolveWithFullResponse: true,
-          simple: false
+          simple: false,
+          json: true
         }).then((response) => {
+          var fs = require('fs');
+          fs.writeFileSync('/tmp/fs.json', JSON.stringify(response));
+          // console.log(response)
           if (response.statusCode >= 200 && response.statusCode < 300) {
             return response.body;
           } else {

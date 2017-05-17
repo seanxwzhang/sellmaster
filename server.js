@@ -16,7 +16,7 @@ const favicon = require('serve-favicon');
 const compression = require('compression');
 const session = require('express-session');
 const RedisStore = require('connect-redis')(session);
-
+require('body-parser-xml')(bodyParser);
 
 if (process.env.NODE_ENV == 'prod') {
     var ca_bundle = fs.readFileSync('sslcert/ca_bundle.crt', 'utf8');
@@ -52,6 +52,7 @@ app.use(compression());
 // add body parser middle ware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
+app.use(bodyParser.xml({limit: '1MB'}));
 // set view engine
 var hbs = exphbs.create({
     defaultLayout: 'main',

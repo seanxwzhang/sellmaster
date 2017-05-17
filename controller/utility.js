@@ -83,6 +83,7 @@ var checkSession = function(req) {
       .then((obj) => {
         if (!obj) {
           resolve(result);
+          return;
         }
         if (getTokenFieldName("shopify") in obj) {
           result['shopify'] = true;

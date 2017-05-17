@@ -1,7 +1,7 @@
 "use strict";
 
 const Promise = require("bluebird");
-const {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey} = require("./utility");
+const {getStoreName, getScope, getCallbackUrl, getNonceKey, getTokenKey} = require("./utility");
 const {winston, redisClient} = require("../globals.js");
 const {eBayClient, ShopifyClient} = require("./client.js");
 const checkSession = require("./utility.js").checkSession;

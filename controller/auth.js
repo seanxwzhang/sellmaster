@@ -166,9 +166,10 @@ router.get('/ebay/callback', (req, res, next) => {
                 json: true,
                 resolveWithFullResponse: true
             }).then((response) => {
+                // console.log(response.body);
                 Promise.join(
                     redisClient.setAsync(getTockenKey("ebay", userid), response.body.access_token),
-                    setTokenIdBySession("ebay", req.session.id, response.body.access_token, userid),
+                    setTokenIdBySession("ebay", req.session.id, response.body.access_token, userid, response.body.expires_in, response.body.refresh_token, response.body.refresh_token_expires_in),
                     (result1, result2) => {
                         return checkSession(req);
                     }

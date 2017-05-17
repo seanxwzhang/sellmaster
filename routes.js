@@ -121,6 +121,8 @@ router.delete('/v1/store/:id', function(req, res, next){
   });
 });
 
+router.use('/api', require('./controller/api.js'));
+
 router.use('/webhook', require('./controller/webhooks.js'));
 
 module.exports = router;

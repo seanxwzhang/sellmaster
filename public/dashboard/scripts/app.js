@@ -28,13 +28,11 @@ angular.module('adfDynamicSample', [
     'adf', 'ngRoute', 'adf.structures.base',
     'adf.widget.clock', 'adf.widget.github', 'adf.widget.iframe',
     'adf.widget.linklist', 'adf.widget.markdown', 'adf.widget.news',
-    'adf.widget.randommsg', 'adf.widget.version', 'adf.widget.weather'
+    'adf.widget.randommsg', 'adf.widget.version', 'adf.widget.weather','adf.widget.clock',
+    'adf.widget.table', 'ng-mfb'
   ])
   .config(function($routeProvider){
     $routeProvider
-      .when('/boards', {
-        templateUrl: 'partials/default.html'
-      })
       .when('/boards/:id', {
         controller: 'dashboardCtrl',
         controllerAs: 'dashboard',
@@ -46,7 +44,7 @@ angular.module('adfDynamicSample', [
         }
       })
       .otherwise({
-        redirectTo: '/boards'
+        redirectTo: '/boards/_1494796694507'
       });
   })
   .service('storeService', function($http, $q){
@@ -154,4 +152,12 @@ angular.module('adfDynamicSample', [
     $scope.$on('adfDashboardChanged', function(event, name, model) {
       storeService.set(name, model);
     });
+
+    $scope.buttons = [{
+      label: 'synchronize products',
+      icon: 'ion-android-sync',
+      click: function() {
+          console.log("I'm clicked!");
+      }
+    }];
   });

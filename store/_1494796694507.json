@@ -1,0 +1,94 @@
+{
+  "title": "My Dashboard",
+  "editable": false,
+  "structure": "12/6-6",
+  "rows": [
+    {
+      "columns": [
+        {
+          "styleClass": "col-md-12",
+          "widgets": [
+            {
+              "type": "clock",
+              "config": {
+                "timePattern": "HH:mm:ss",
+                "datePattern": "YYYY-MM-DD"
+              },
+              "title": "Clock",
+              "titleTemplateUrl": "../src/templates/widget-title.html",
+              "wid": "1494869001315-2"
+            },
+            {
+              "type": "iframe",
+              "config": {
+                "height": "420px",
+                "url": "https://www.safaricycle.com"
+              },
+              "title": "My Shopify Store",
+              "titleTemplateUrl": "../src/templates/widget-title.html",
+              "wid": "1494868953361-1"
+            }
+          ],
+          "cid": "1494916078279-3"
+        }
+      ]
+    },
+    {
+      "columns": [
+        {
+          "styleClass": "col-md-6",
+          "widgets": [
+            {
+              "type": "table",
+              "config": {
+                "url": "https://localhost:8443/test.json",
+                "root": "products",
+                "columns": [
+                  {
+                    "title": "id",
+                    "path": "id"
+                  },
+                  {
+                    "title": "title",
+                    "path": "title"
+                  }
+                ]
+              },
+              "title": "My Shopify Products",
+              "titleTemplateUrl": "../src/templates/widget-title.html",
+              "wid": "1494916065118-1"
+            }
+          ],
+          "cid": "1494916078281-3"
+        },
+        {
+          "styleClass": "col-md-6",
+          "widgets": [
+            {
+              "type": "table",
+              "config": {
+                "url": "https://localhost:8443/test1.json",
+                "root": "products",
+                "columns": [
+                  {
+                    "title": "id",
+                    "path": "id"
+                  },
+                  {
+                    "title": "title",
+                    "path": "title"
+                  }
+                ]
+              },
+              "title": "My eBay Products",
+              "titleTemplateUrl": "../src/templates/widget-title.html",
+              "wid": "1494916098717-5"
+            }
+          ],
+          "cid": "1494916078281-4"
+        }
+      ]
+    }
+  ],
+  "titleTemplateUrl": "../src/templates/dashboard-title.html"
+}

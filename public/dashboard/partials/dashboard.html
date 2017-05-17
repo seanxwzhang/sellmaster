@@ -1,8 +1,17 @@
-<div>
-  <adf-dashboard name="{{dashboard.name}}" structure="4-8" adf-model="dashboard.model" />
-</div>
-<div class="footer">
+<!-- <div class="footer">
   <button class="btn btn-warning" ng-click="dashboard.delete(dashboard.name)">
     <span class="glyphicon glyphicon-remove"></span> Delete
   </button>
+</div> -->
+<nav mfb-menu position="br" effect="slidein-spring" label="Hide"
+     active-icon="ion-edit" resting-icon="ion-plus-round"
+     toggling-method="click">
+  <a mfb-button id="testid" label="{{button.label}}" icon="{{button.icon}}" ng-click="button.click()" ng-repeat="button in buttons"></a>
+</nav>
+
+<div>
+  <adf-dashboard editable="true" name="{{dashboard.name}}" structure="4-8" adf-model="dashboard.model" />
 </div>
+<svg class="spinner" width="65px" height="65px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+   <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+</svg>

@@ -2,97 +2,139 @@
 const crypto = require('crypto');
 const {winston, redisClient} = require("../globals");
 const Promise = require('bluebird');
+const rp = require('request-promise');
+const moment = require('moment');
+const {eBayClient, ShopifyClient} = require("./client.js");
 
 var getStoreName = function(req) {
-    if (req.query.storename && req.query.storename != "undefined") {
-        return req.query.storename;
-    } else if (req.query.shop) {
-        return req.query.shop.split('.')[0];
-    }else {
-        return process.env.NODE_ENV == 'dev' ? "sell-master" : "safari-cycle-salvage-2";
-    }
+  if (req.query.storename && req.query.storename != "undefined") {
+    return req.query.storename;
+  } else if (req.query.shop) {
+    return req.query.shop.split('.')[0];
+  }else {
+    return process.env.NODE_ENV == 'dev' ? "sell-master" : "safari-cycle-salvage-2";
+  }
 }
 
 var getScope = function(scope) {
-    return scope || "read_content,write_content,read_themes,write_themes,read_products,write_products,read_customers,write_customers,read_orders,write_orders,read_draft_orders,write_draft_orders,read_script_tags,write_script_tags,read_fulfillments,write_fulfillments,read_analytics,read_checkouts,write_checkouts,read_reports,write_reports";
+  return scope || "read_content,write_content,read_themes,write_themes,read_products,write_products,read_customers,write_customers,read_orders,write_orders,read_draft_orders,write_draft_orders,read_script_tags,write_script_tags,read_fulfillments,write_fulfillments,read_analytics,read_checkouts,write_checkouts,read_reports,write_reports";
 }
 
 var getCallbackUrl = function(channel) {
-    return `http://${process.env.NODE_ENV == 'dev' ? 'localhost:' + process.env.UNSECURE_PORT : process.env.PROD_HOSTNAME}/auth/${channel}/callback`;
+  return `http://${process.env.NODE_ENV == 'dev' ? 'localhost:' + process.env.UNSECURE_PORT : process.env.PROD_HOSTNAME}/auth/${channel}/callback`;
 }
 
 var getNonceKey = function(channel, shop) {
-    return `${channel}:${shop}:nonce`;
+  return `${channel}:${shop}:nonce`;
 }
 
 var getTockenKey = function(channel, shop) {
-    return `${channel}:${shop}:tocken`;
+  return `${channel}:${shop}:tocken`;
 }
 
 var getSessionKey = function(session) {
-    return `session:${session}`;
+  return `session:${session}`;
 }
 
 var getTokenFieldName = function(channel) {
-    return `${channel}Token`
+  return `${channel}Token`
 }
 
 var getIdFieldName = function(channel) {
-    return `${channel}Id`
+  return `${channel}Id`
 }
 
 // use this method to extract userid/shopname for ebay/shopify based on session
 var getIdBySession = function(channel, session) {
-    return redisClient.hgetAsync(getSessionKey(session), getIdFieldName(channel));
+  return redisClient.hgetAsync(getSessionKey(session), getIdFieldName(channel));
 }
 
 var getTokenBySession = function(channel, session) {
-    return redisClient.hgetAsync(getSessionKey(session), getTokenFieldName(channel))
+  return redisClient.hgetAsync(getSessionKey(session), getTokenFieldName(channel))
 }
 
-var checkTokenValidity = function(channel, token) {
-    if (token) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-/**
- * method for checking validity of session and the token validity associated with it
- * Shopify token doesn't have a expiration date on their tokens, so not check it
- * TDOO: check if ebay token has expired, it won't after the cron jobs for refreshing tokens are implemented
- **/
-var checkSession = function(req) {
-    return new Promise((resolve, reject) => {
-        var result = {
-            ebay: false,
-            shopify: false
-        };
-        if (req.session.id) {
-            console.log(req.session.id);
-            Promise.join(
-                getTokenBySession("shopify", req.session.id),
-                getTokenBySession("ebay", req.session.id),
-            (res1, res2) => { // TODO: check validity here?
-                console.log(`shopify token: ${res1}`);
-                console.log(`ebay token: ${res2}`);
-                result['shopify'] = checkTokenValidity("shoipfy", res1);
-                result['ebay'] = checkTokenValidity("ebay", res2);
-                resolve(result);
-            })
-        } else {
-            resolve(result);
-        }
-    })
-}
-
-var setTokenIdBySession = function(channel, session, token, id) {
+var setTokenIdBySession = function(channel, session, token, id, expires_in, refresh_token, refresh_token_expires_in) {
+  if (refresh_token) {
+    return redisClient.hmsetAsync(getSessionKey(session), getTokenFieldName(channel), token, getIdFieldName(channel), id, `${channel}expires_in`, expires_in, `${channel}refresh_token`, refresh_token, `${channel}refresh_token_expires_in`, refresh_token_expires_in, `${channel}last_refreshed_at`, moment().format());
+  } else {
     return redisClient.hmsetAsync(getSessionKey(session), getTokenFieldName(channel), token, getIdFieldName(channel), id);
+  }
 }
 
 var removeTokenIdBySession = function(channel, session) {
-    return redisClient.hdelAsync(getSessionKey(session), getTokenFieldName(channel));
+  return redisClient.hdelAsync(getSessionKey(session), getTokenFieldName(channel));
 }
+
+/**
+* method for checking validity of session and the token validity associated with it
+* Shopify token doesn't have a expiration date on their tokens, so not check it
+* TDOO: check if ebay token has expired, it won't after the cron jobs for refreshing tokens are implemented
+**/
+var checkSession = function(req) {
+  return new Promise((resolve, reject) => {
+    var result = {
+      ebay: false,
+      shopify: false
+    };
+    if (req.session && req.session.id) {
+      console.log(req.session.id);
+      redisClient.hgetallAsync(getSessionKey(req.session.id))
+      .then((obj) => {
+        if (getTokenFieldName("shopify") in obj) {
+          result['shopify'] = true;
+        }
+        if (getTokenFieldName("ebay") in obj && 'ebaylast_refreshed_at' in obj && 'ebayrefresh_token' in obj && 'ebayexpires_in' in obj) {
+          var last_updated_at = moment(obj[`ebaylast_refreshed_at`]);
+          var refresh_token = obj[`ebayrefresh_token`];
+          var max_difference = obj['ebayexpires_in'] - 120;
+          var difference = moment().diff(last_updated_at, 'seconds');
+          // console.log(last_updated_at.format());
+          // console.log(moment().format());
+          if (difference >= max_difference) { // refresh the token
+            if (process.env.NODE_ENV == 'dev') {
+              var credential = 'Basic ' + Buffer.from(`${process.env.EBAY_SANDBOX_CLIENT_ID}:${process.env.EBAY_SANDBOX_CLIENT_SECRET}`).toString('base64');
+              var RuName = process.env.RUNAME_SANDBOX;
+            } else {
+              var credential = 'Basic ' + Buffer.from(`${process.env.EBAY_PROD_CLIENT_ID}:${process.env.EBAY_PROD_CLIENT_SECRET}`).toString('base64');
+              var RuName = process.env.RUNAME_PROD;
+            }
+            rp({
+              method: 'POST',
+              uri: 'https://api.sandbox.ebay.com/identity/v1/oauth2/token',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': credential
+              },
+              body: `grant_type=refresh_token&refresh_token=${refresh_token}&scope=${process.env.EBAY_FULL_SCOPE}`,
+              json: true,
+              resolveWithFullResponse: true
+            }).then((response) => {
+              if (response.statusCode >= 200 && response.statusCode < 300) {
+                redisClient.hmsetAsync(getSessionKey(req.session.id), getTokenFieldName("ebay"), response.body.access_token, 'ebayexpires_in', response.body.expires_in,  `ebaylast_refreshed_at`, moment().format())
+                .then((ans) => {
+                  result['ebay'] = true;
+                  resolve(result);
+                })
+              } else {
+                result['ebay'] = false;
+                resolve(result);
+              }
+            })
+          } else {
+            // console.log("not expired!");
+            result['ebay'] = true;
+            resolve(result);
+          }
+        } else {
+          result['ebay'] = false;
+          resolve(result);
+        }
+      })
+    } else {
+      resolve(result);
+    }
+  })
+}
+
 
 module.exports = {getStoreName, getScope, getCallbackUrl, getNonceKey, getTockenKey, getTokenBySession, checkSession, setTokenIdBySession, getIdBySession, removeTokenIdBySession};

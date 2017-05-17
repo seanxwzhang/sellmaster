@@ -21,18 +21,18 @@ module.exports.getAlleBayProducts = function(req) {
         var startTime = moment().subtract(maximum_gap_days, 'days'); // TODO: not sure if this will get all products
         var requestBody = {
             'GetSellerListRequest':{
-        		'@xmlns':  'urn:ebay:apis:eBLBaseComponents',
-        		'ErrorLanguage' : 'en_US',
-        		'WarningLevel' : 'High',
-        		'GranularityLevel' : 'Fine',
-        		'StartTimeFrom' : startTime.format('YYYY-MM-DDTHH:mm:ss.SSS'),
-        		'StartTimeTo' : moment().format('YYYY-MM-DDTHH:mm:ss.SSS'),
-        		'IncludeWatchCount' : true,
-        		'Pagination' :{
+                '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
+                'ErrorLanguage' : 'en_US',
+                'WarningLevel' : 'High',
+                'GranularityLevel' : 'Fine',
+                'StartTimeFrom' : startTime.format('YYYY-MM-DDTHH:mm:ss.SSS'),
+                'StartTimeTo' : moment().format('YYYY-MM-DDTHH:mm:ss.SSS'),
+                'IncludeWatchCount' : true,
+                'Pagination' :{
                     'PageNumber': 1,
-        			'EntriesPerPage' : 200
-        		}
-        	}
+                    'EntriesPerPage' : 200
+                }
+            }
         };
         var xml = builder.create(requestBody, {encoding: 'utf-8'});
         var str = xml.end({pretty:true, indent: ' ', newline: '\n'});
@@ -72,7 +72,75 @@ module.exports.getAllShopifyProducts = function(req) {
     });
 }
 
+module.exports.getActiveEbaySellings = function(req) {
+    return Promise.join(getTokenBySession("ebay", req.session.id), getIdBySession("ebay", req.session.id), (token, id) => {
+        var ebayclient = new eBayClient(id, 'SOAP');
+        var xmlbdy = {
+            'GetMyeBaySellingRequest':{
+                '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
+                'ErrorLanguage' : 'en_US',
+                'WarningLevel' : 'High',
+                'ActiveList' :{
+                    'Pagination' :{
+                        'EntriesPerPage' : 200,
+                        'PageNumber' : 1
+                    }
+                }
+            }
+        };
+        var xml = builder.create(xmlbdy,{encoding: 'utf-8'});
+        var str = xml.end({pretty:true,indent: ' ',newline : '\n'});
+        return ebayclient.post('GetMyeBaySelling',str)
+        .then((result) => {
+            return new Promise((resolve, reject) => {
+                parser.parseString(result,function(err,resdata){
+                    // console.log(resdata);
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(resdata);
+                    }
+                });
+            })
+        }).catch((err) => {
+            console.log(err);
+        });
+    });
+}
 
-var getAllShopifyProducts = function(req) {
+module.exports.getNumberofActiveEbayListings = function(req) {
+    var ebayclient = new eBayClient(id, 'SOAP');
+    var xmlbdy = {
+        'GetMyeBaySellingRequest':{
+            '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
+            'ErrorLanguage' : 'en_US',
+            'WarningLevel' : 'High',
+            'ActiveList' :{
+                'Pagination' :{
+                    'EntriesPerPage' : 1,
+                    'PageNumber' : 1
+                }
+            }
+        }
+    };
+    var xml = builder.create(xmlbdy,{encoding: 'utf-8'});
+    var str = xml.end({pretty:true,indent: ' ',newline : '\n'});
+    return ebayclient.post('GetMyeBaySelling',str)
+    .then((result) => {
+        return new Promise((resolve, reject) => {
+            parse.parseString(result, (err, data) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(data.GetMyeBaySellingResponse.ActiveList[0].PaginationResult[0]);
+                }
+            })
+        })
+    })
+}
 
+module.exports.getAllActiveEbaySellings = function(req) {
+    return Promise.join(getTokenBySession("ebay", req.session.id), getIdBySession("ebay", req.session.id), (token, id) => {
+        return exports.getNumberofActiveEbayListings(id)
+    })
 }

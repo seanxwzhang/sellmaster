@@ -40,7 +40,11 @@
     <link href="components/angular-dashboard-framework/dist/angular-dashboard-framework.min.css" rel="stylesheet">
     <link href="components/adf-widget-clock/dist/adf-widget-clock.min.css" rel="stylesheet">
     <link href="components/adf-widget-iframe/dist/adf-widget-iframe.min.css" rel="stylesheet">
+    <link href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet">
     <link href="styles/app.css" rel="stylesheet">
+    <link href="../css/bootstrap-material-design.min.css" rel="stylesheet">
+    <link href="components/ng-material-floating-button/mfb/dist/mfb.css" rel="stylesheet"/>
+    <link href="styles/custom.css" rel="stylesheet">
     <!-- endbuild -->
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -69,17 +73,14 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="#">ADF Dynamic Sample</a>
+          <a class="navbar-brand" href="/">SellMaster</a>
         </div>
         <div uib-collapse="nav.navCollapsed" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
             <li ng-class="nav.navClass('boards/' + item.id)" ng-repeat="item in nav.items | orderBy: title">
               <a ng-href="#/boards/{{item.id}}">{{item.title}}</a>
             </li>
-            <li>
-              <a style="cursor: pointer;" ng-click="nav.create()">Create</a>
-            </li>
-          </ul>
+
         </div><!--/.nav-collapse -->
       </div>
     </div>
@@ -90,6 +91,9 @@
 
     </div>
 
+    <!-- jquery -->
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+    <script src="../js/jquery.sticky.js"></script>
     <!-- components -->
     <script type="text/javascript" src="components/Sortable/Sortable.min.js"></script>
     <script type="text/javascript" src="components/angular/angular.min.js"></script>
@@ -98,11 +102,15 @@
     <script type="text/javascript" src="components/angular-bootstrap/ui-bootstrap-tpls.min.js"></script>
     <script type="text/javascript" src="components/angular-dashboard-framework/dist/angular-dashboard-framework.min.js"></script>
 
+
     <!-- scripts -->
     <script type="text/javascript" src="scripts/app.js"></script>
 
     <!-- structures -->
     <script type="text/javascript" src="components/adf-structures-base/dist/adf-structures-base.min.js"></script>
+
+    <!-- tables -->
+    <script type="text/javascript" src="components/adf-widget-table/dist/adf-widget-table.min.js"></script>
 
     <!-- clock -->
     <script type="text/javascript" src="components/moment/min/moment.min.js"></script>
@@ -136,5 +144,12 @@
 
     <!-- weather -->
     <script type="text/javascript" src="components/adf-widget-weather/dist/adf-widget-weather.min.js"></script>
+
+    <script src="components/ng-material-floating-button/src/mfb-directive.js"></script>
+    <script>
+    $(document).ready(function(){
+      $("#sticker").sticky({topSpacing:0});
+    });
+    </script>
   </body>
 </html>

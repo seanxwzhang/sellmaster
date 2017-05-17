@@ -42,7 +42,8 @@ app.use(session({
     secret: process.env.SESSION_SECRET,
     name: 'sellmaster.sid',
     resave: true,
-    saveUninitialized: true
+    saveUninitialized: true,
+    cookie:{maxAge:60000000}
 }));
 // serve favicon
 app.use(favicon(__dirname + '/public/favicon.ico'));

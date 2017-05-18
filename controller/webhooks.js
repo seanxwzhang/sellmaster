@@ -66,7 +66,8 @@ function ebay_getItem(itemid,res){
 			'@xmlns':  "urn:ebay:apis:eBLBaseComponents",
 			'ErrorLanguage' : 'en_US',
 			'WarningLevel' : 'High',
-			'ItemID' : itemid
+			'ItemID' : itemid,
+			'IncludeItemSpecifics' : true
 		}
 	};
 	var xml = builder.create(xmlbdy,{encoding: 'utf-8'});
@@ -77,7 +78,7 @@ function ebay_getItem(itemid,res){
 	.then((result) => {
         
 		parser.parseString(result,function(err,resdata){
-			console.dir(resdata);
+			console.log(util.inspect(resdata,false,null));
 			if(resdata.GetItemResponse.Ack[0]=="Success"||resdata.GetItemResponse.Ack[0]=="Warning"){console.log("Item retrieve succeeded");
 				res.status(200).send("Item with id " +itemid + " retrieve succeeded. Quantity is now " + resdata.GetItemResponse.Item[0].Quantity[0] );
 				//console.dir(resdata.GetItemResponse.Item[0].Quantity[0]);
@@ -111,7 +112,7 @@ function ebay_endItem(itemid,res){
 	.then((result) => {
         
 		parser.parseString(result,function(err,resdata){
-			console.dir(resdata);
+			console.log(util.inspect(resdata,false,null));
 			if(resdata.EndItemResponse.Ack[0]=="Success"||resdata.EndItemResponse.Ack[0]=="Warning"){console.log("Item retrieve succeeded");
 				res.status(200).send("Item with id " + itemid + " ended successfully." );
 				//console.dir(resdata.GetItemResponse.Item[0].Quantity[0]);
@@ -169,8 +170,10 @@ router.get('/testActiveItem/ebay',(req,res,err) => {
 				'Pagination' :{
 					'EntriesPerPage' : 200,
 					'PageNumber' : 1
-				}
+				},
+				'IncludeNotes' : true
 			}
+			
 		}
 	};
 	var xml = builder.create(xmlbdy,{encoding: 'utf-8'});
@@ -203,13 +206,15 @@ var test = {
 		'@xmlns':  'urn:ebay:apis:eBLBaseComponents',
 		'ErrorLanguage' : 'en_US',
 		'WarningLevel' : 'High',		
-		'GranularityLevel' : 'Coarse',
+		'DetailLevel' : 'ReturnAll',
 		'StartTimeFrom' : '2017-05-01T21:59:59.005Z',
-		'StartTimeTo' : '2017-05-15T21:59:59.005Z',
+		'StartTimeTo' : '2017-05-20T21:59:59.005Z',
 		'IncludeWatchCount' : true,
+		'IncludeVariations' : true,
 		'Pagination' :{
 			'EntriesPerPage' : 200
 		}
+		
 	}
 };
 	var xml = builder.create(test,{encoding: 'utf-8'});
@@ -223,7 +228,7 @@ var test = {
 	.then((result) => {
         //console.log(result);
 		parser.parseString(result,function(err,resdata){
-			console.dir(resdata);
+			console.log(util.inspect(resdata,false,null));
 			res.status(200).send(JSON.stringify(resdata,null,2));
 			
 		});

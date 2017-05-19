@@ -245,6 +245,30 @@ router.post('/testeBayWebhook',(req,res,err) =>{
 	res.status(200).end();
 	console.log(util.inspect(req.body, false, null));
 	//console.log(req.body.GetSellerListResponse.Ack[0]);
+	//TODO security check
+	
+	//get id and quantity
+	var response = req.body['soapenv:Envelope']['soapenv:Body'][0].GetItemResponse[0];
+	//console.log(util.inspect(response,false,null));
+	var notificationName = response.NotificationEventName[0];
+	console.log("notification is "+notificationName);
+	if(notificationName == "ItemSold"){
+		var eBay_id = response.Item[0].ItemID[0];
+		var eBay_quantity = response.Item[0].Quantity[0];
+		console.log("eb id: "+eBay_id);
+		console.log("eb quan: "+eBay_quantity);
+		
+		//update Shopify by first finding corresponding id and then do the update
+		
+	}
+	else if (notificationName == "ItemListed"){
+		//get all necessary attribute
+		
+		//update database for id mapping by creating a new entry
+		
+		//Use Shopify API to create a listing
+		
+	}
 	
 });
 
@@ -252,7 +276,30 @@ router.post('/testeBayWebhook',(req,res,err) =>{
 router.post('/testShopifyWebhook',(req,res,err) =>{
 	res.status(200).end();
 	console.log(util.inspect(req.body, false, null));
+	//TODO security check
+
+	//get_id and quantity
+	var Shopify_id = [];
+	var Shopify_quantity = [];
+	for(var i = 0; i < req.body.variants.length;i++){
+		Shopify_id.push(req.body.variants[i].id);
+		console.log("Sh id: "+ req.body.variants[i].id);
+		Shopify_quantity.push(req.body.variants[i].inventory_quantity);
+		console.log("Sh quan: "+ req.body.variants[i].inventory_quantity);		
+	}
+	for(var i = 0; i< Shopify_id.length; i++){
+		//retreive ebay corresponding id
 		
+		//update quantity
+		if(Shopify_quantity[i]==0){
+			//Call enditem function			
+		}
+		else{
+			//Call reviseitem quantity function			
+		}
+		
+	}
+	
 });
 
 

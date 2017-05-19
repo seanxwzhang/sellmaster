@@ -148,16 +148,18 @@ router.get('/ebay/callback', (req, res, next) => {
             console.log("nonce is: " + nonce);
             if (checkNonce != nonce) throw "Nonce verification failed";
             if (!code) throw "No authorization code";
-            if (process.env.NODE_ENV == 'dev') {
+            if (process.env.EBAY_ENV == 'sandbox') {
                 var credential = 'Basic ' + Buffer.from(`${process.env.EBAY_SANDBOX_CLIENT_ID}:${process.env.EBAY_SANDBOX_CLIENT_SECRET}`).toString('base64');
                 var RuName = process.env.RUNAME_SANDBOX;
+                var uri = 'https://api.sandbox.ebay.com/identity/v1/oauth2/token';
             } else {
                 var credential = 'Basic ' + Buffer.from(`${process.env.EBAY_PROD_CLIENT_ID}:${process.env.EBAY_PROD_CLIENT_SECRET}`).toString('base64');
                 var RuName = process.env.RUNAME_PROD;
+                var uri = 'https://api.ebay.com/identity/v1/oauth2/token';
             }
             return rp({
                 method: 'POST',
-                uri: 'https://api.sandbox.ebay.com/identity/v1/oauth2/token',
+                uri: uri,
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Authorization': credential

@@ -5,6 +5,7 @@ const {getStoreName, getScope, getCallbackUrl, getNonceKey, getTokenKey} = requi
 const {winston, redisClient} = require("../globals.js");
 const {eBayClient, ShopifyClient} = require("./client.js");
 const checkSession = require("./utility.js").checkSession;
+const productModel = require("../models/products.js");
 const getAlleBayProducts = require("../models/products.js").getAlleBayProducts;
 const getAllShopifyProducts = require("../models/products.js").getAllShopifyProducts;
 const getActiveEbaySellings = require("../models/products.js").getActiveEbaySellings;
@@ -37,7 +38,7 @@ router.get('/testapi', sessionAuth, (req, res, next) => {
 })
 
 router.get('/ebaylist', sessionAuth, (req, res, next) => {
-    getActiveEbaySellings(req)
+    productModel.getAllActiveEbaySellings(req)
     .then((data) => {
         res.status(200).send({products: data});
     }).catch((err) => {

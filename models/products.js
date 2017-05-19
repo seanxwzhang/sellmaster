@@ -13,46 +13,58 @@ const AppError = require("../models/error.js");
 const moment = require('moment');
 const builder = require('xmlbuilder');
 const parser = require('xml2js');
+const parserp = require('xml2js-es6-promise');
+const _ = require('lodash');
 const maximum_gap_days = 119;
 
 var xmlbdyGenerator = function(request, epp, pn) {
   switch(request) {
     case 'GetMyeBaySellingRequest':
-    return  {
-      'GetMyeBaySellingRequest':{
-        '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
-        'ActiveList' :{
-          'Include': true,
-          'IncludeNotes': true,
-          'Pagination' :{
-            'EntriesPerPage' : epp,
-            'PageNumber' : pn
-          }
-        },
-        'ErrorLanguage' : 'en_US',
-        'WarningLevel' : 'High',
-        'DetailLevel': 'ReturnAll',
-      }
-    };
-    case 'GetSellerListRequest':
-    var startTime = moment().subtract(maximum_gap_days, 'days');
-    return {
-      'GetSellerListRequest':{
-        '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
-        'ErrorLanguage' : 'en_US',
-        'WarningLevel' : 'High',
-        'GranularityLevel' : 'Fine',
-        'StartTimeFrom' : startTime.format('YYYY-MM-DDTHH:mm:ss.SSS'),
-        'StartTimeTo' : moment().format('YYYY-MM-DDTHH:mm:ss.SSS'),
-        'IncludeWatchCount' : true,
-        'Pagination' :{
-          'PageNumber': pn,
-          'EntriesPerPage' : epp
+      return  {
+        'GetMyeBaySellingRequest':{
+          '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
+          'ActiveList' :{
+            'Include': true,
+            'IncludeNotes': true,
+            'Pagination' :{
+              'EntriesPerPage' : epp,
+              'PageNumber' : pn
+            }
+          },
+          'ErrorLanguage' : 'en_US',
+          'WarningLevel' : 'High'
+          // 'DetailLevel': 'ReturnAll',
         }
-      }
-    };
+      };
+    case 'GetSellerListRequest':
+      var startTime = moment().subtract(maximum_gap_days, 'days');
+      return {
+        'GetSellerListRequest':{
+          '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
+          'ErrorLanguage' : 'en_US',
+          'WarningLevel' : 'High',
+          'GranularityLevel' : 'Fine',
+          'StartTimeFrom' : startTime.format('YYYY-MM-DDTHH:mm:ss.SSS'),
+          'StartTimeTo' : moment().format('YYYY-MM-DDTHH:mm:ss.SSS'),
+          'IncludeWatchCount' : true,
+          'Pagination' :{
+            'PageNumber': pn,
+            'EntriesPerPage' : epp
+          }
+        }
+      };
+    case 'GetItemRequest':
+      return {
+    		'GetItemRequest' : {
+    			'@xmlns':  "urn:ebay:apis:eBLBaseComponents",
+    			'ErrorLanguage' : 'en_US',
+    			'WarningLevel' : 'High',
+    			'ItemID' : epp,
+    			'IncludeItemSpecifics' : true
+    		}
+    	};
     default:
-    return {};
+      return {};
   }
 
 }
@@ -124,14 +136,15 @@ module.exports.getActiveEbaySellings = function(req) {
     }).catch((err) => {
       console.log(err);
       if (err instanceof AppError) {
-          if (err.type == "authentication") {
-          }
+        if (err.type == "authentication") {
         }
+      }
     });
   });
 }
 
-module.exports.getNumberofActiveEbayListings = function(id) {
+var getNumberofActiveEbayListings = function(id) {
+  console.log('getting number of active ebay listings');
   var ebayclient = new eBayClient(id, 'SOAP');
   var xmlbdy = xmlbdyGenerator('GetMyeBaySellingRequest', 1, 1);
   var xml = builder.create(xmlbdy,{encoding: 'utf-8'});
@@ -143,6 +156,7 @@ module.exports.getNumberofActiveEbayListings = function(id) {
         if (err) {
           reject(err);
         } else {
+          console.log(`There are ${data.GetMyeBaySellingResponse.ActiveList[0].PaginationResult[0].TotalNumberOfEntries[0]} listings`);
           resolve(data.GetMyeBaySellingResponse.ActiveList[0].PaginationResult[0].TotalNumberOfEntries[0]);
         }
       })
@@ -150,24 +164,77 @@ module.exports.getNumberofActiveEbayListings = function(id) {
   })
 }
 
+/**
+* helper function to get ids of all ebay products
+**/
+var getAllEbayItemsIds = function(req) {
+  return Promise.join(getTokenBySession("ebay", req.session.id), getIdBySession("ebay", req.session.id), (token, id) => {
+    return getNumberofActiveEbayListings(id)
+    .then((number) => {
+      var ebayclient = new eBayClient(id, 'SOAP');
+      var strs = [];
+      var epp = 200;
+      var np = Math.ceil(number / 200);
+      // var chunkSize = 10; // 10 requests per chunk
+      for (let i = 1; i <= np; i++) {
+        let xmlbdy = xmlbdyGenerator('GetMyeBaySellingRequest', epp, i);
+        let xml = builder.create(xmlbdy,{encoding: 'utf-8'});
+        strs.push(xml.end({pretty:true,indent: ' ',newline : '\n'}));
+      }
+      console.log(`Getting all item ids...`);
+      var allRequests = strs.map((str, index) => {
+        console.log(`Getting ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`);
+        return ebayclient.post('GetMyeBaySelling', str)
+        .then((response) => {
+          return parserp(response);
+        }).then((response) => {
+          if (response.GetMyeBaySellingResponse.Ack[0] == "Success") {
+            console.log(`Got ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`);
+            return response.GetMyeBaySellingResponse.ActiveList[0].ItemArray[0].Item.map((eachItem) => {
+              return eachItem.ItemID[0];
+            })
+          } else {
+            throw new AppError("Error occured in requesting item ids", "operation");
+          }
+        })
+      });
+      return Promise.all(allRequests);
+    }).then((itemIdArrays) => {
+      return _.flattenDeep(itemIdArrays);
+    })
+  })
+}
 
 
 module.exports.getAllActiveEbaySellings = function(req) {
-  return Promise.join(getTokenBySession("ebay", req.session.id), getIdBySession("ebay", req.session.id), (token, id) => {
-    return exports.getNumberofActiveEbayListings(id)
-  }).then((number) => {
+  return Promise.join(getIdBySession("ebay", req.session.id), getAllEbayItemsIds(req), (id, ids) => {
+    console.log(ids);
     var ebayclient = new eBayClient(id, 'SOAP');
     var strs = [];
-    var epp = 200;
-    var np = Math.ceil(number / 200);
-    for (let i = 1; i <= np; i++) {
-      let xmlbdy = xmlbdyGenerator('GetMyeBaySellingRequest', epp, i);
-      let xml = builder.create(xmlbdy,{encoding: 'utf-8'});
+    for (let i = 1; i <= ids.length; i++) {
+      let xmlbody = xmlbdyGenerator('GetItemRequest', ids[i]);
+      let xml = builder.create(xmlbody,{encoding: 'utf-8'});
+              // console.log(xml.end({pretty: true}));
       strs.push(xml.end({pretty:true,indent: ' ',newline : '\n'}));
     }
-
-
-  })
+    console.log(`Getting all item information`);
+    var allRequests = strs.map((str, index) => {
+      console.log(`Getting ${index}th item info`);
+      return ebayclient.post('GetItemRequest', str)
+      .then((xmlres) => {
+        return parserp(xmlres);
+      }).then((response) => {
+        return response;
+        if (response.GetItemRequestResponse.Ack[0] == "Success") {
+          console.log(`Got ${index * epp} to ${Math.min((index+1) * epp, number)} item info`);
+          return response;
+        } else {
+          throw new AppError("Error occured in requesting item ids", "operation");
+        }
+      })
+    })
+    return Promise.all(allRequests);
+  });
 }
 
 module.exports.postShopifyProduct = function(data) {

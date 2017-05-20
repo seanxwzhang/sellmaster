@@ -36,7 +36,8 @@ router.get('/', (req, res, next) => {
                 messageStyle: messageStyle,
                 shopifyLogin: !result.shopify,
                 eBayLogin: !result.ebay,
-                authenticated: result.shopify && result.ebay
+                authenticated: result.shopify && result.ebay,
+                hosturl: process.env.HOSTNAME
             });
         })
     } else {
@@ -50,14 +51,16 @@ router.get('/', (req, res, next) => {
                     messageStyle: "success",
                     shopifyLogin: !result.shopify,
                     eBayLogin: !result.ebay,
-                    authenticated: result.shopify && result.ebay
+                    authenticated: result.shopify && result.ebay,
+                    hosturl: process.env.HOSTNAME
                 });
             } else {
                 res.render('home',{
                     styles: ["css/bootstrap-material-design.min.css", "css/ripples.min.css", "css/home.css"],
                     js: ["js/material.min.js","js/home.js"],
                     shopifyLogin: true,
-                    eBayLogin: true
+                    eBayLogin: true,
+                    hosturl: process.env.HOSTNAME
                 });
             }
         })

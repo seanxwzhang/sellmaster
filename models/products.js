@@ -240,7 +240,7 @@ module.exports.getAllActiveEbaySellings = function(req) {
     })
     return Promise.all(allRequests);
   }).then((products) => {
-    return products;
+    //return products;
     return products.map((product) => {
       if (product) {
         return {
@@ -252,7 +252,7 @@ module.exports.getAllActiveEbaySellings = function(req) {
           ConvertedCurrentPrice: (product.SellingStatus[0].ConvertedCurrentPrice && product.SellingStatus[0].ConvertedCurrentPrice[0]) ? product.SellingStatus[0].ConvertedCurrentPrice[0]._ + ' ' + product.SellingStatus[0].ConvertedCurrentPrice[0]['$'].currencyID : null,
           StartPrice: (product.StartPrice && product.StartPrice[0]) ? product.StartPrice[0]._ + ' ' + product.StartPrice[0]['$'].currencyID : null,
           PictureDetails: product.PictureDetails ? product.PictureDetails[0] : null,
-          ItemSpecifics: product.ItemSpecifics ? product.ItgiemSpecifics[0] : null,
+          ItemSpecifics: product.ItemSpecifics ? product.ItemSpecifics[0] : null,
           ConditionID: product.ConditionID ? product.ConditionID[0] : null,
           ConditionDescription: product.ConditionDescription ? product.ConditionDescription[0] : null,
           ConditionDisplayName: product.ConditionDisplayName ? product.ConditionDisplayName[0] : null

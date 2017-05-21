@@ -16,6 +16,7 @@ const parser = require('xml2js');
 const parserp = require('xml2js-es6-promise');
 const _ = require('lodash');
 const maximum_gap_days = 119;
+const epp = 200;
 
 var xmlbdyGenerator = function(request, epp, pn) {
   switch(request) {
@@ -173,8 +174,7 @@ var getAllEbayItemsIds = function(req) {
     .then((number) => {
       var ebayclient = new eBayClient(id, 'SOAP');
       var strs = [];
-      var epp = 200;
-      var np = Math.ceil(number / 200);
+      var np = Math.ceil(number / epp);
       // var chunkSize = 10; // 10 requests per chunk
       for (let i = 1; i <= np; i++) {
         let xmlbdy = xmlbdyGenerator('GetMyeBaySellingRequest', epp, i);
@@ -207,7 +207,10 @@ var getAllEbayItemsIds = function(req) {
 
 
 module.exports.getAllActiveEbaySellings = function(req) {
+  var ifSave = req.query.ifsave;
+  var ebayId = null;
   return Promise.join(getIdBySession("ebay", req.session.id), getAllEbayItemsIds(req), (id, ids) => {
+    ebayId = id;
     console.log(ids);
     var ebayclient = new eBayClient(id, 'SOAP');
     var strs = [];
@@ -224,17 +227,38 @@ module.exports.getAllActiveEbaySellings = function(req) {
       .then((xmlres) => {
         return parserp(xmlres);
       }).then((response) => {
-        return response;
-        if (response.GetItemRequestResponse.Ack[0] == "Success") {
-          console.log(`Got ${index * epp} to ${Math.min((index+1) * epp, number)} item info`);
-          return response;
+        // return response;
+        if (response.GetItemResponse.Ack[0] == 'Success') {
+          console.log(`Got ${index}th item info`);
+          return response.GetItemResponse.Item[0];
         } else {
-          throw new AppError("Error occured in requesting item ids", "operation");
+          console.log(`Failed on getting ${index}th item info`);
+          return null;
         }
       })
     })
     return Promise.all(allRequests);
-  });
+  }).then((products) => {
+    // return products;
+    return products.map((product) => {
+      if (product) {
+        return {
+          ItemId: product.ItemID[0],
+          Title: product.Title[0],
+          Category: product.PrimaryCategory[0].CategoryName[0],
+          Quantity: product.Quantity[0],
+          ConvertedCurrentPrice: product.SellingStatus[0].ConvertedCurrentPrice[0]._ + ' ' + product.SellingStatus[0].ConvertedCurrentPrice[0]['$'].currencyID,
+          StartPrice: product.StartPrice[0]._ + ' ' + product.StartPrice[0]['$'].currencyID,
+          PictureDetails: product.PictureDetails[0],
+          ItemSpecifics: product.ItemSpecifics[0],
+          ConditionID: product.ConditionID[0],
+          ConditionDescription: product.ConditionDescription[0],
+          ConditionDisplayName: product.ConditionDisplayName[0]
+        }
+      }
+      return null;
+    })
+  })
 }
 
 module.exports.postShopifyProduct = function(data) {

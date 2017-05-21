@@ -243,17 +243,18 @@ module.exports.getAllActiveEbaySellings = function(req) {
     return products.map((product) => {
       if (product) {
         return {
-          ItemId: product.ItemID[0],
-          Title: product.Title[0],
-          Category: product.PrimaryCategory[0].CategoryName[0],
-          Quantity: product.Quantity[0],
-          ConvertedCurrentPrice: product.SellingStatus[0].ConvertedCurrentPrice[0]._ + ' ' + product.SellingStatus[0].ConvertedCurrentPrice[0]['$'].currencyID,
-          StartPrice: product.StartPrice[0]._ + ' ' + product.StartPrice[0]['$'].currencyID,
-          PictureDetails: product.PictureDetails[0],
-          ItemSpecifics: product.ItemSpecifics[0],
-          ConditionID: product.ConditionID[0],
-          ConditionDescription: product.ConditionDescription[0],
-          ConditionDisplayName: product.ConditionDisplayName[0]
+          ItemId: product.ItemID ? product.ItemID[0] : null,
+          Title: product.Title ? product.Title[0] : null,
+          SKU: product.SKU ? product.SKU[0] : null,
+          Category: (product.PrimaryCategory && product.PrimaryCategory[0] && product.PrimaryCategory[0].CategoryName) ? product.PrimaryCategory[0].CategoryName[0] : null,
+          Quantity: product.Quantity ? product.Quantity[0] : null,
+          ConvertedCurrentPrice: (product.SellingStatus[0].ConvertedCurrentPrice && product.SellingStatus[0].ConvertedCurrentPrice[0]) ? product.SellingStatus[0].ConvertedCurrentPrice[0]._ + ' ' + product.SellingStatus[0].ConvertedCurrentPrice[0]['$'].currencyID : null,
+          StartPrice: (product.StartPrice && product.StartPrice[0]) ? product.StartPrice[0]._ + ' ' + product.StartPrice[0]['$'].currencyID : null,
+          PictureDetails: product.PictureDetails ? product.PictureDetails[0] : null,
+          ItemSpecifics: product.ItemSpecifics ? product.ItgiemSpecifics[0] : null,
+          ConditionID: product.ConditionID ? product.ConditionID[0] : null,
+          ConditionDescription: product.ConditionDescription ? product.ConditionDescription[0] : null,
+          ConditionDisplayName: product.ConditionDisplayName ? product.ConditionDisplayName[0] : null
         }
       }
       return null;

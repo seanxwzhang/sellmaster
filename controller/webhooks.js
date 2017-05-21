@@ -6,6 +6,7 @@ var builder = require('xmlbuilder');
 var parser = require('xml2js');
 var router = require('express').Router();
 var util = require('util');
+var http = require('http');
 const {eBayClient, ShopifyClient} = require('./client.js');
 
 /**
@@ -303,13 +304,51 @@ router.post('/testShopifyWebhook',(req,res,err) =>{
 });
 
 
+
+function findItembyTitle(title,quantity){
+	//console.log(process.env.EBAY_SANDBOX_CLIENT_ID);
+	var resStr = '';
+	
+	var securityID = process.env.EBAY_SANDBOX_CLIENT_ID; //may change to official
+	var sellerConstraint = '&itemFilter.name=Seller&itemFilter.value=testuser_shuangzhang'; //seller name can subject to change
+	var opParam = 'OPERATION-NAME=findItemsByKeywords&SERVICE-VERSION=1.13.0&RESPONSE-DATA-FORMAT=XML&SECURITY-APPNAME=';
+	var payloadParam = 'REST-PAYLOAD&keywords=' + title.replace(/ /g,'%20') + sellerConstraint + '&paginationInput.entriesPerPage=200';
+	
+	
+	var options = {
+		host: 'svcs.sandbox.ebay.com',
+		path: '/services/search/FindingService/v1?' + opParam + securityID + '&' + payloadParam		
+	};
+	var req = http.request(options, function(response){
+		response.on('data', function(chunk){
+			resStr += chunk;
+		});
+		
+		response.on('end',function(){
+			parser.parseString(resStr,function(err,resdata){
+				console.log(util.inspect(resdata,false,null));
+				if(resdata.findItemsByKeywordsResponse.ack[0]=='Success'){
+					var itemID = resdata.findItemsByKeywordsResponse.searchResult[0].item[0].itemId[0];
+					console.log('itemid is '+itemID);
+					console.log(quantity);
+					//do something with the item and quantity.
+				}
+			});
+		});
+		
+	}).end();
+	
+	
+}
+
+
 /**
  * webhook handler for item deletion from ebay
  * 1. should check if the item has been deleted from shopify already
  * 2. if not, delete it from ebay
  **/
 router.get('/deleteItemCallback/ebay', (req, res, next) => {
-
+	//findItembyTitle('00-03 Honda Shadow Ace 750 Vt750 Vt750cd Front Forks Clamp Lower Triple Tree',2);
 })
 
 

@@ -17,6 +17,7 @@ const parserp = require('xml2js-es6-promise');
 const _ = require('lodash');
 const maximum_gap_days = 119;
 const epp = 10;
+import {getProductName} from './utility';
 
 var xmlbdyGenerator = function(request, epp, pn) {
   switch(request) {
@@ -243,8 +244,8 @@ module.exports.getAllActiveEbaySellings = function(req) {
     //return products;
     return products.map((product) => {
       if (product) {
-        return {
-          ItemId: product.ItemID ? product.ItemID[0] : null,
+        var rval = {
+          ItemID: product.ItemID ? product.ItemID[0] : null,
           Title: product.Title ? product.Title[0] : null,
           SKU: product.SKU ? product.SKU[0] : null,
           Category: (product.PrimaryCategory && product.PrimaryCategory[0] && product.PrimaryCategory[0].CategoryName) ? product.PrimaryCategory[0].CategoryName[0] : null,
@@ -256,7 +257,9 @@ module.exports.getAllActiveEbaySellings = function(req) {
           ConditionID: product.ConditionID ? product.ConditionID[0] : null,
           ConditionDescription: product.ConditionDescription ? product.ConditionDescription[0] : null,
           ConditionDisplayName: product.ConditionDisplayName ? product.ConditionDisplayName[0] : null
-        }
+        };
+        console.log(getProductName("ebay", ebayId, rval.ItemID));
+        return rval;
       }
       return null;
     })

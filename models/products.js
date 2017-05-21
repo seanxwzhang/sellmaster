@@ -16,7 +16,7 @@ const parser = require('xml2js');
 const parserp = require('xml2js-es6-promise');
 const _ = require('lodash');
 const maximum_gap_days = 119;
-const epp = 200;
+const epp = 10;
 
 var xmlbdyGenerator = function(request, epp, pn) {
   switch(request) {
@@ -176,7 +176,8 @@ var getAllEbayItemsIds = function(req) {
       var strs = [];
       var np = Math.ceil(number / epp);
       // var chunkSize = 10; // 10 requests per chunk
-      for (let i = 1; i <= np; i++) {
+      console.log('Getting only one page of items');
+      for (let i = 1; i <= 1; i++) {
         let xmlbdy = xmlbdyGenerator('GetMyeBaySellingRequest', epp, i);
         let xml = builder.create(xmlbdy,{encoding: 'utf-8'});
         strs.push(xml.end({pretty:true,indent: ' ',newline : '\n'}));
@@ -239,7 +240,7 @@ module.exports.getAllActiveEbaySellings = function(req) {
     })
     return Promise.all(allRequests);
   }).then((products) => {
-    // return products;
+    return products;
     return products.map((product) => {
       if (product) {
         return {

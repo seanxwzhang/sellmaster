@@ -61,6 +61,34 @@ function ebay_changeQuantity(itemid,quantity,res){
 	
 }
 
+function shopify_changeQuantity(itemid,quantity,res){
+	var shopifyclient = new ShopifyClient('sellmaster1');
+	shopifyclient.get('admin/products/'+ itemid +'.json','','')
+	.then((result) => {
+		var json_obj = JSON.parse(result);
+		var my_id = json_obj.product.variants[0].id;
+		var new_product =
+		{
+  			"variant": 
+  				{
+    			"id": my_id,
+    			"inventory_management": "shopify",
+    			"inventory_quantity": quantity
+  				}
+		}
+		console.log(new_product);
+		return shopifyclient.put('admin/variants/'+ my_id +'.json','',new_product)
+		.then((result) => {
+		console.log(result);
+        res.status(200).send(result);
+    	}).catch((err) => {
+        	console.log(err);
+    	});
+    }).catch((err) => {
+        console.log(err);
+    });
+}
+
 function ebay_getItem(itemid,res){
 	var xmlbdy = {
 		'GetItemRequest' : {
@@ -93,6 +121,17 @@ function ebay_getItem(itemid,res){
     }).catch((err) => {
         console.log(err);
     }); 
+}
+
+function shopify_getItem(itemid,res){
+	var shopifyclient = new ShopifyClient('sellmaster1');
+	return shopifyclient.get('admin/products/'+ itemid +'.json','','')
+	.then((result) => {
+		console.log(result);
+        res.status(200).send(result);
+    }).catch((err) => {
+        console.log(err);
+    });
 }
 
 function ebay_endItem(itemid,res){
@@ -129,6 +168,33 @@ function ebay_endItem(itemid,res){
     });
 	
 }
+
+function shopify_endItem(itemid,res){
+	var shopifyclient = new ShopifyClient('sellmaster1');
+	return shopifyclient.delete('admin/products/'+ itemid +'.json','','')
+	.then((result) => {
+		console.log(result);
+        res.status(200).send(result);
+    }).catch((err) => {
+        console.log(err);
+    });
+}
+
+router.get('/testEndItemQuantity/shopify/:itemid',(req,res,err) =>{
+	var itemid = req.params.itemid;
+	shopify_endItem(itemid,res);
+});
+
+router.get('/testGetItemID/shopify/:itemid',(req,res,err) =>{
+	var itemid = req.params.itemid;
+	shopify_getItem(itemid,res);
+});
+
+router.get('/testReviseItemQuantity/shopify/:itemid/:newquantity',(req,res,err) =>{
+	var itemid = req.params.itemid;
+	var newquantity = req.params.newquantity;
+	shopify_changeQuantity(itemid,newquantity,res)
+});
 
 router.get('/testEndItemQuantity/ebay/:itemid',(req,res,err) =>{
 	var itemid = req.params.itemid;

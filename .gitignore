@@ -2,3 +2,6 @@ node_modules
 bower_components
 public/dashboard/components
 .env
+.tern-project
+.remote-sync.json
+.ftpconfig

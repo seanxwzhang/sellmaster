@@ -16,7 +16,7 @@ const parser = require('xml2js');
 const parserp = require('xml2js-es6-promise');
 const _ = require('lodash');
 const maximum_gap_days = 119;
-const epp = 10;
+const epp_default = 200;
 const {getProductName} = require('./utility');
 
 var xmlbdyGenerator = function(request, epp, pn) {
@@ -169,16 +169,17 @@ var getNumberofActiveEbayListings = function(id) {
 /**
 * helper function to get ids of all ebay products
 **/
-var getAllEbayItemsIds = function(req) {
+var getAllEbayItemsIds = function(req, sampleSize) {
   return Promise.join(getTokenBySession("ebay", req.session.id), getIdBySession("ebay", req.session.id), (token, id) => {
     return getNumberofActiveEbayListings(id)
     .then((number) => {
       var ebayclient = new eBayClient(id, 'SOAP');
       var strs = [];
-      var np = Math.ceil(number / epp);
+      var epp = sampleSize == "all" ? epp_default : 10;
+      var np = sampleSize == "all" ? Math.ceil(number / epp) : 3;
       // var chunkSize = 10; // 10 requests per chunk
       console.log('Getting only one page of items');
-      for (let i = 1; i <= 3; i++) {
+      for (let i = 1; i <= np; i++) {
         let xmlbdy = xmlbdyGenerator('GetMyeBaySellingRequest', epp, i);
         let xml = builder.create(xmlbdy,{encoding: 'utf-8'});
         strs.push(xml.end({pretty:true,indent: ' ',newline : '\n'}));
@@ -211,16 +212,13 @@ var getAllEbayItemsIds = function(req) {
 module.exports.getAllActiveEbaySellings = function(req) {
   var ifSave = req.query.ifsave;
   var ebayId = null;
+  var sampleSize = req.query.all ? "all" : 35;
   const chunkSize = 20;
-  return Promise.join(getIdBySession("ebay", req.session.id), getAllEbayItemsIds(req), (id, ids) => {
+  return Promise.join(getIdBySession("ebay", req.session.id), getAllEbayItemsIds(req, sampleSize), (id, ids) => {
     ebayId = id;
-    console.log(ids);
     var ebayclient = new eBayClient(id, 'REST');
-    console.log(ebayclient);
-    var idChunks = _.chunk(ids, 10);
-    console.log(idChunks);
+    var idChunks = _.chunk(ids, chunkSize);
     var allRequests = idChunks.map((idchunk, index) => {
-      console.log(`Getting ${index * chunkSize}th to ${Math.min((index + 1) * chunkSize, ids.length)}`);
       return ebayclient.get(`shopping`, {
         callname: "GetMultipleItems",
         responseencoding: "XML",
@@ -229,16 +227,32 @@ module.exports.getAllActiveEbaySellings = function(req) {
         IncludeSelector: 'Details,Description,ItemSpecifics,Variations',
         ItemID: idchunk.join(',')
       }, '').then((response) => {
+        console.log(`Obtained ${index * chunkSize}th to ${Math.min((index + 1) * chunkSize, ids.length)}th items`);
         return parserp(response);
       }).then((resObject) => {
         return resObject.GetMultipleItemsResponse.Item;
+      }).then((Items) => {
+        return _.flatten(Items);
+      }).then((products) => {
+        return Promise.all(products.map((product, index) => {
+          console.log(getProductName("ebay", ebayId, product.ItemID));
+          if (ifSave) {
+            return redisClient.setAsync(getProductName("ebay", ebayId, product.ItemID), JSON.stringify(product))
+              .then((result) => {
+                console.log(`saved ${index}/${products.length} product info`)
+                return `${product.ItemID} ok`;
+              }).catch((err) => {
+                return `${product.ItemID} bad`;
+              })
+          } else {
+            return product;
+          }
+        }))
       })
     })
     return Promise.all(allRequests);
-  }).then((allItems) => {
-    return _.flatten(allItems);
-  }).then((products) => {
-    return products;
+  }).then((responses) => {
+    return responses;
   })
 }
 

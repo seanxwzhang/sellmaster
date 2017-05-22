@@ -256,6 +256,14 @@ module.exports.getAllActiveEbaySellings = function(req) {
   })
 }
 
+module.exports.pushAllProductsToShopify = function(req) {
+  var shopifyID;
+  return Promise.join(getIdBySession("shopify", req.session.id), (id) => {
+    shopifyID = id;
+
+  });
+}
+
 module.exports.postShopifyProduct = function(data) {
   return new Promise((resolve, reject) => {
     var shopifyclient = new ShopifyClient('sellmaster1');

@@ -63,12 +63,12 @@ class eBayClient {
         if (typeof client.authKey !== "undefined") {
           res(client.headers);
         } else {
-          console.log(getTokenKey("ebay", client.username));
+          // console.log(getTokenKey("ebay", client.username));
           return redisClient.getAsync(getTokenKey("ebay", client.username))
           .then((token) => {
             client.authKey = token.replace(/\"/g, '');
             client.headers['X-EBAY-API-IAF-TOKEN'] = client.authKey;
-            client.headers['X-EBAY-API-CALL-NAME'] = apicall;
+            client.headers['X-EBAY-API-CALL-NAME'] = apicall == 'GetItemRequest' ? 'GetItem' : apicall;
             res(client.headers);
           }).catch((err) =>{
             rej("Error occured in acquiring ebay access token, please have the store login first: " + err);
@@ -98,7 +98,7 @@ class eBayClient {
 
   REST_request(method) {
     let client = this;
-    return (url, qs, data) => {
+    return ((url, qs, data) => {
       let uri = [client.baseUrl, url].join('/');
       console.log(`${method}  ${uri}`);
       return new Promise((res, rej) => {
@@ -138,7 +138,7 @@ class eBayClient {
         })
       })
 
-    }
+    })
 
   }
 }

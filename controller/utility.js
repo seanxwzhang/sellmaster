@@ -22,7 +22,7 @@ var getScope = function(scope) {
 }
 
 var getCallbackUrl = function(channel) {
-  return `http://${process.env.NODE_ENV == 'dev' ? 'localhost:' + process.env.UNSECURE_PORT : process.env.PROD_HOSTNAME}/auth/${channel}/callback`;
+  return `http://${process.env.NODE_ENV == 'dev' ? 'localhost:' + process.env.UNSECURE_PORT : process.env.HOSTNAME}/auth/${channel}/callback`;
 }
 
 var getNonceKey = function(channel, shop) {
@@ -91,14 +91,14 @@ var checkSession = function(req) {
         if (getTokenFieldName("ebay") in obj && 'ebaylast_refreshed_at' in obj && 'ebayrefresh_token' in obj && 'ebayexpires_in' in obj) {
           var last_updated_at = moment(obj[`ebaylast_refreshed_at`]);
           var refresh_token = obj[`ebayrefresh_token`];
-          var max_difference = obj['ebayexpires_in'] - 7000;
+          var max_difference = obj['ebayexpires_in'] - 120;
           var difference = moment().diff(last_updated_at, 'seconds');
           var ebayid = obj[`ebayId`];
           console.log(last_updated_at.format());
           console.log(moment().format());
           // console.log(obj['ebayToken']);
-          // if (difference >= max_difference) { // refresh the token
-          if (true) {
+          if (difference >= max_difference) { // refresh the token
+          // if (true) {
             console.log("refreshing tocken!");
             if (process.env.NODE_ENV == 'dev') {
               var credential = 'Basic ' + Buffer.from(`${process.env.EBAY_SANDBOX_CLIENT_ID}:${process.env.EBAY_SANDBOX_CLIENT_SECRET}`).toString('base64');
@@ -109,7 +109,7 @@ var checkSession = function(req) {
             }
             rp({
               method: 'POST',
-              uri: 'https://api.sandbox.ebay.com/identity/v1/oauth2/token',
+              uri: `https://api${process.env.EBAY_ENV == 'prod' ? '' : '.sandbox'}.ebay.com/identity/v1/oauth2/token`,
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Authorization': credential

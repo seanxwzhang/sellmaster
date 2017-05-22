@@ -109,7 +109,7 @@ var checkSession = function(req) {
             }
             rp({
               method: 'POST',
-              uri: 'https://api.sandbox.ebay.com/identity/v1/oauth2/token',
+              uri: `https://api${process.env.EBAY_ENV == 'prod' ? '' : '.sandbox'}.ebay.com/identity/v1/oauth2/token`,
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Authorization': credential

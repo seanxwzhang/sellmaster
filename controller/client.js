@@ -98,7 +98,7 @@ class eBayClient {
 
   REST_request(method) {
     let client = this;
-    return (url, qs, data) => {
+    return ((url, qs, data) => {
       let uri = [client.baseUrl, url].join('/');
       console.log(`${method}  ${uri}`);
       return new Promise((res, rej) => {
@@ -138,7 +138,7 @@ class eBayClient {
         })
       })
 
-    }
+    })
 
   }
 }

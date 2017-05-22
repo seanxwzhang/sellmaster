@@ -17,56 +17,56 @@ const parserp = require('xml2js-es6-promise');
 const _ = require('lodash');
 const maximum_gap_days = 119;
 const epp = 10;
-import {getProductName} from './utility';
+const {getProductName} = require('./utility');
 
 var xmlbdyGenerator = function(request, epp, pn) {
   switch(request) {
     case 'GetMyeBaySellingRequest':
-      return  {
-        'GetMyeBaySellingRequest':{
-          '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
-          'ActiveList' :{
-            'Include': true,
-            'IncludeNotes': true,
-            'Pagination' :{
-              'EntriesPerPage' : epp,
-              'PageNumber' : pn
-            }
-          },
-          'ErrorLanguage' : 'en_US',
-          'WarningLevel' : 'High'
-          // 'DetailLevel': 'ReturnAll',
-        }
-      };
-    case 'GetSellerListRequest':
-      var startTime = moment().subtract(maximum_gap_days, 'days');
-      return {
-        'GetSellerListRequest':{
-          '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
-          'ErrorLanguage' : 'en_US',
-          'WarningLevel' : 'High',
-          'GranularityLevel' : 'Fine',
-          'StartTimeFrom' : startTime.format('YYYY-MM-DDTHH:mm:ss.SSS'),
-          'StartTimeTo' : moment().format('YYYY-MM-DDTHH:mm:ss.SSS'),
-          'IncludeWatchCount' : true,
+    return  {
+      'GetMyeBaySellingRequest':{
+        '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
+        'ActiveList' :{
+          'Include': true,
+          'IncludeNotes': true,
           'Pagination' :{
-            'PageNumber': pn,
-            'EntriesPerPage' : epp
+            'EntriesPerPage' : epp,
+            'PageNumber' : pn
           }
+        },
+        'ErrorLanguage' : 'en_US',
+        'WarningLevel' : 'High'
+        // 'DetailLevel': 'ReturnAll',
+      }
+    };
+    case 'GetSellerListRequest':
+    var startTime = moment().subtract(maximum_gap_days, 'days');
+    return {
+      'GetSellerListRequest':{
+        '@xmlns':  'urn:ebay:apis:eBLBaseComponents',
+        'ErrorLanguage' : 'en_US',
+        'WarningLevel' : 'High',
+        'GranularityLevel' : 'Fine',
+        'StartTimeFrom' : startTime.format('YYYY-MM-DDTHH:mm:ss.SSS'),
+        'StartTimeTo' : moment().format('YYYY-MM-DDTHH:mm:ss.SSS'),
+        'IncludeWatchCount' : true,
+        'Pagination' :{
+          'PageNumber': pn,
+          'EntriesPerPage' : epp
         }
-      };
+      }
+    };
     case 'GetItemRequest':
-      return {
-    		'GetItemRequest' : {
-    			'@xmlns':  "urn:ebay:apis:eBLBaseComponents",
-    			'ErrorLanguage' : 'en_US',
-    			'WarningLevel' : 'High',
-    			'ItemID' : epp,
-    			'IncludeItemSpecifics' : true
-    		}
-    	};
+    return {
+      'GetItemRequest' : {
+        '@xmlns':  "urn:ebay:apis:eBLBaseComponents",
+        'ErrorLanguage' : 'en_US',
+        'WarningLevel' : 'High',
+        'ItemID' : epp,
+        'IncludeItemSpecifics' : true
+      }
+    };
     default:
-      return {};
+    return {};
   }
 
 }
@@ -178,7 +178,7 @@ var getAllEbayItemsIds = function(req) {
       var np = Math.ceil(number / epp);
       // var chunkSize = 10; // 10 requests per chunk
       console.log('Getting only one page of items');
-      for (let i = 1; i <= 1; i++) {
+      for (let i = 1; i <= 3; i++) {
         let xmlbdy = xmlbdyGenerator('GetMyeBaySellingRequest', epp, i);
         let xml = builder.create(xmlbdy,{encoding: 'utf-8'});
         strs.push(xml.end({pretty:true,indent: ' ',newline : '\n'}));
@@ -211,58 +211,34 @@ var getAllEbayItemsIds = function(req) {
 module.exports.getAllActiveEbaySellings = function(req) {
   var ifSave = req.query.ifsave;
   var ebayId = null;
+  const chunkSize = 20;
   return Promise.join(getIdBySession("ebay", req.session.id), getAllEbayItemsIds(req), (id, ids) => {
     ebayId = id;
     console.log(ids);
-    var ebayclient = new eBayClient(id, 'SOAP');
-    var strs = [];
-    for (let i = 1; i <= ids.length; i++) {
-      let xmlbody = xmlbdyGenerator('GetItemRequest', ids[i]);
-      let xml = builder.create(xmlbody,{encoding: 'utf-8'});
-              // console.log(xml.end({pretty: true}));
-      strs.push(xml.end({pretty:true,indent: ' ',newline : '\n'}));
-    }
-    console.log(`Getting all item information`);
-    var allRequests = strs.map((str, index) => {
-      console.log(`Getting ${index}th item info`);
-      return ebayclient.post('GetItemRequest', str)
-      .then((xmlres) => {
-        return parserp(xmlres);
-      }).then((response) => {
-        // return response;
-        if (response.GetItemResponse.Ack[0] == 'Success') {
-          console.log(`Got ${index}th item info`);
-          return response.GetItemResponse.Item[0];
-        } else {
-          console.log(`Failed on getting ${index}th item info`);
-          return null;
-        }
+    var ebayclient = new eBayClient(id, 'REST');
+    console.log(ebayclient);
+    var idChunks = _.chunk(ids, 10);
+    console.log(idChunks);
+    var allRequests = idChunks.map((idchunk, index) => {
+      console.log(`Getting ${index * chunkSize}th to ${Math.min((index + 1) * chunkSize, ids.length)}`);
+      return ebayclient.get(`shopping`, {
+        callname: "GetMultipleItems",
+        responseencoding: "XML",
+        appid: process.env.EBAY_PROD_CLIENT_ID,
+        version: 967,
+        IncludeSelector: 'Details,Description,ItemSpecifics,Variations',
+        ItemID: idchunk.join(',')
+      }, '').then((response) => {
+        return parserp(response);
+      }).then((resObject) => {
+        return resObject.GetMultipleItemsResponse.Item;
       })
     })
     return Promise.all(allRequests);
+  }).then((allItems) => {
+    return _.flatten(allItems);
   }).then((products) => {
-    //return products;
-    return products.map((product) => {
-      if (product) {
-        var rval = {
-          ItemID: product.ItemID ? product.ItemID[0] : null,
-          Title: product.Title ? product.Title[0] : null,
-          SKU: product.SKU ? product.SKU[0] : null,
-          Category: (product.PrimaryCategory && product.PrimaryCategory[0] && product.PrimaryCategory[0].CategoryName) ? product.PrimaryCategory[0].CategoryName[0] : null,
-          Quantity: product.Quantity ? product.Quantity[0] : null,
-          ConvertedCurrentPrice: (product.SellingStatus[0].ConvertedCurrentPrice && product.SellingStatus[0].ConvertedCurrentPrice[0]) ? product.SellingStatus[0].ConvertedCurrentPrice[0]._ + ' ' + product.SellingStatus[0].ConvertedCurrentPrice[0]['$'].currencyID : null,
-          StartPrice: (product.StartPrice && product.StartPrice[0]) ? product.StartPrice[0]._ + ' ' + product.StartPrice[0]['$'].currencyID : null,
-          PictureDetails: product.PictureDetails ? product.PictureDetails[0] : null,
-          ItemSpecifics: product.ItemSpecifics ? product.ItemSpecifics[0] : null,
-          ConditionID: product.ConditionID ? product.ConditionID[0] : null,
-          ConditionDescription: product.ConditionDescription ? product.ConditionDescription[0] : null,
-          ConditionDisplayName: product.ConditionDisplayName ? product.ConditionDisplayName[0] : null
-        };
-        console.log(getProductName("ebay", ebayId, rval.ItemID));
-        return rval;
-      }
-      return null;
-    })
+    return products;
   })
 }
 

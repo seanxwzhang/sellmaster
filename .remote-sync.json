@@ -1,0 +1,17 @@
+{
+  "transport": "scp",
+  "hostname": "testsite.sellmaster.in",
+  "port": "22",
+  "username": "sean",
+  "keyfile": "/Users/xiaowenzhang/.ssh/id_rsa",
+  "target": "/home/sean/sellmaster",
+  "ignore": [
+    ".remote-sync.json",
+    ".git/**",
+    ".env"
+  ],
+  "watch": [],
+  "uploadOnSave": true,
+  "useAtomicWrites": false,
+  "deleteLocal": false
+}

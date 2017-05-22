@@ -1,3 +1,3 @@
-export function getProductName({channel, ebayid, itemID}) {
+module.exports.getProductName = (channel, ebayid, itemID) => {
   return `products:${channel}:${ebayid}:${itemID}`;
 }

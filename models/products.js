@@ -17,7 +17,9 @@ const parserp = require('xml2js-es6-promise');
 const _ = require('lodash');
 const maximum_gap_days = 119;
 const epp_default = 200;
-const {getProductName} = require('./utility');
+const {getProductName, getMappingKey} = require('./utility');
+// var redis_scanner = require('redis-scanner');
+// redis_scanner.bindScanners(redisClient);
 
 var xmlbdyGenerator = function(request, epp, pn) {
   switch(request) {
@@ -256,12 +258,100 @@ module.exports.getAllActiveEbaySellings = function(req) {
   })
 }
 
-module.exports.pushAllProductsToShopify = function(req) {
-  var shopifyID;
-  return Promise.join(getIdBySession("shopify", req.session.id), (id) => {
-    shopifyID = id;
 
-  });
+module.exports.getAllProductKeys = function(redisClient, channel, id, limit) {
+  return new Promise((resolve, reject) => {
+    var cursor = '0';
+    var results = new Set();
+    var count = limit || 1000;
+    var wrapper = () => {
+      return redisClient.scanAsync(cursor, 'MATCH', `products:${channel}:${id}:*`, 'COUNT', count.toString())
+        .then((reply) => {
+          cursor = reply[0];
+          let keys = reply[1];
+          keys.forEach(function(key,i){
+              results.add(key);
+          });
+          if (cursor == '0' || limit) {
+            console.log(`Got ${results.size} keys`);
+            resolve(Array.from(results));
+          } else {
+            return wrapper();
+          }
+        }).catch((err) => {
+          console.log("Error happend during acquiring keys: ", err);
+          reject(err);
+        })
+    }
+    wrapper();
+  }).then((keys) => {
+    return _.flattenDeep(keys);
+  })
+}
+
+var generateHTMLfromSpecifics = function(ItemSpecifics, ConditionDisplayName, ConditionDescription, Description) {
+  var specifics = {};
+  if (ItemSpecifics && ItemSpecifics.length > 0 && ItemSpecifics[0].NameValueList && ItemSpecifics[0].NameValueList.length > 0) {
+    ItemSpecifics[0].NameValueList.forEach((pair) => {
+      specifics[pair.Name[0]] = pair.Value[0];
+    })
+  }
+  if (_.isEmpty(specifics)) {
+    return Description[0];
+  }
+  return `<div class="section"><p class="secHd">Item specifics</p><table style="table-layout: auto !important;" id="itmSellerDesc" width="100%" cellspacing="0" cellpadding="0"><tbody><tr><th>Condition:</th><td style="width: 92%;"><b>${ConditionDisplayName}</b></td></tr><tr><th>Seller Notes:</th><td class="sellerNotesContent"><span class="viDescQuotes">“</span><span class="viSNotesCnt">${ConditionDescription}</span><span class="viDescQuotes">”</span></td></tr></tbody></table><table style="table-layout: auto !important;" width="100%" cellspacing="0" cellpadding="0"><tbody><tr><td class="attrLabels">Brand:</td><td width="50.0%"><p itemprop="brand" itemscope="itemscope" itemtype="http://schema.org/Brand"><span itemprop="name">${specifics['Brand']}</span></p></td><td class="attrLabels">Part Type:</td><td width="50.0%"><span>${specifics['Part Type']}</span></td></tr><tr><td class="attrLabels">Manufacturer Part Number:</td><td width="50.0%"><p itemprop="mpn">${specifics['Manufacturer Part Number']}</p></td></tr><!-- Added for see review link --></tbody></table></div>`
+}
+
+module.exports.pushAlleBayProductsToShopify = function(req) {
+  var limit = req.query.limit || 10000;
+  return getIdBySession("ebay", req.session.id).then((ebayID) => {
+    return Promise.join(exports.getAllProductKeys(redisClient, "ebay", ebayID, limit), getIdBySession("shopify", req.session.id), (keys, shopifyID) => {
+      var shopifyclient = new ShopifyClient(shopifyID);
+      var pushRequest = keys.map((key, index) => {
+        return redisClient.getAsync(key)
+        .then((productStr) => {
+          var product = JSON.parse(productStr);
+          var shopifyData = {
+            product: {
+              vendor: shopifyID,
+              title: product.Title ? product.Title[0] : null,
+              tags: product.ItemID,
+              body_html: generateHTMLfromSpecifics(product.ItemSpecifics, product.ConditionDisplayName, product.ConditionDescription, product.Description),
+              product_type: product.PrimaryCategoryName[0],
+              options: [{name: "Title", position: "1"}],
+              images: product.PictureURL.map((url) => {return {src: url};}),
+              variants: [
+                {
+                  price: product.CurrentPrice[0]['_'],
+                  fullfillment_service: "manual",
+                  inventory_management: "shopify",
+                  sku: product.SKU ? product.SKU[0] : null
+                }
+              ]
+            }
+          };
+          return shopifyclient.post('admin/products.json', "", shopifyData);
+        }).catch((err) => {
+          console.log("Post data to shopify error:", err);
+        }).then((response) => {
+          if (response && response.product) {
+              console.log(`${index}/${keys.length} product ${response.product.id} has been posted, creating mapping for it`);
+              return Promise.join(
+                redisClient.setAsync(getMappingKey("ebay", "shopify", response.product.tags), response.product.id),
+                redisClient.setAsync(getMappingKey("shopify", "ebay", response.product.id), response.product.tags),
+                (res1, res2) => {
+                  console.log("mapping created");
+                  return 'ok';
+                }
+              );
+          } else {
+              console.log(response);
+          }
+        })
+      });
+      return Promise.all(pushRequest);
+    });
+  })
 }
 
 module.exports.postShopifyProduct = function(data) {

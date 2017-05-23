@@ -9,6 +9,7 @@ const rp = require("request-promise");
 const Promise = require("bluebird");
 const {winston, redisClient} = require("../globals.js");
 const fs = require("fs");
+const RateLimiter = require('limiter').RateLimiter;
 
 /**
 * Ebay http client, mode is 'REST' or 'SOAP'
@@ -155,7 +156,26 @@ class ShopifyClient {
       'X-Shopify-Access-Token': ''
     };
     this.authKey = undefined;
-
+    this.limiter = new RateLimiter(2, 'second');
+    var that = this;
+    this.applyLimiter = function(fn) {
+      return function(url, qs, data) {
+        return new Promise((resolve, reject) => {
+          that.limiter.removeTokens(1, function(err, remainingRequests) {
+            if (err) {
+              console.log("Limiter error:", err)
+            } else{
+              fn(url, qs, data)
+              .then((response) => {
+                resolve(response);
+              }).catch((err) => {
+                reject(err);
+              })
+            }
+          });
+        })
+      };
+    };
     this.get = this._request('GET');
     this.post = this._request('POST');
     this.put = this._request('PUT');
@@ -164,7 +184,7 @@ class ShopifyClient {
 
   _request(method) {
     let client = this;
-    return(url, qs, data) => {
+    var fn = (url, qs, data) => {
       let uri = [client.baseUrl, url.replace(/^\//, '')].join('/');
       console.log(`${method}  ${uri}`);
       return new Promise((res, rej) => {
@@ -192,8 +212,8 @@ class ShopifyClient {
           simple: false,
           json: data ? true:false
         }).then((response) => {
-          var fs = require('fs');
-          fs.writeFileSync('/tmp/fs.json', JSON.stringify(response));
+          // var fs = require('fs');
+          // fs.writeFileSync('/tmp/fs.json', JSON.stringify(response));
           // console.log(response)
           if (response.statusCode >= 200 && response.statusCode < 300) {
             return response.body;
@@ -204,7 +224,8 @@ class ShopifyClient {
           throw err;
         })
       })
-    }
+    };
+    return client.applyLimiter(fn);
   }
 }
 

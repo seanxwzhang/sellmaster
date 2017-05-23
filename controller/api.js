@@ -67,30 +67,9 @@ router.get('/shopifylist', sessionAuth, (req, res, next) => {
 })
 
 router.get('/posttest', sessionAuth, (req, res, next) => {
-  var data = {
-    "product": {
-      "title": "Burton Custom Freestyle 151",
-      "body_html": "<strong>Good snowboard!<\/strong>",
-      "vendor": "Burton",
-      "product_type": "Snowboard",
-      "variants": [
-        {
-          "option1": "First",
-          "price": "10.00",
-          "sku": "123"
-        },
-        {
-          "option1": "Second",
-          "price": "20.00",
-          "sku": "123"
-        }
-      ]
-    }
-  };
-  postShopifyProduct(data)
-  .then((response) => {
-    res.status(200).send(response);
-  })
+  req.query.limit = 20;
+  res.status(200).send("start synchronizing");
+  productModel.pushAlleBayProductsToShopify(req);
 })
 
 

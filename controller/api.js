@@ -67,7 +67,7 @@ router.get('/shopifylist', sessionAuth, (req, res, next) => {
 })
 
 router.get('/posttest', sessionAuth, (req, res, next) => {
-  req.query.limit = 20;
+  // req.query.limit = 10;
   res.status(200).send("start synchronizing");
   productModel.pushAlleBayProductsToShopify(req);
 })

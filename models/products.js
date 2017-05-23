@@ -17,7 +17,7 @@ const parserp = require('xml2js-es6-promise');
 const _ = require('lodash');
 const maximum_gap_days = 119;
 const epp_default = 200;
-const {getProductName, getMappingKey} = require('./utility');
+const {getProductName, getMappingKey, findCorrespondingID} = require('./utility');
 // var redis_scanner = require('redis-scanner');
 // redis_scanner.bindScanners(redisClient);
 
@@ -263,7 +263,7 @@ module.exports.getAllProductKeys = function(redisClient, channel, id, limit) {
   return new Promise((resolve, reject) => {
     var cursor = '0';
     var results = new Set();
-    var count = limit || 1000;
+    var count = limit || 10000;
     var wrapper = () => {
       return redisClient.scanAsync(cursor, 'MATCH', `products:${channel}:${id}:*`, 'COUNT', count.toString())
         .then((reply) => {
@@ -303,7 +303,7 @@ var generateHTMLfromSpecifics = function(ItemSpecifics, ConditionDisplayName, Co
 }
 
 module.exports.pushAlleBayProductsToShopify = function(req) {
-  var limit = req.query.limit || 10000;
+  var limit = req.query.limit;
   return getIdBySession("ebay", req.session.id).then((ebayID) => {
     return Promise.join(exports.getAllProductKeys(redisClient, "ebay", ebayID, limit), getIdBySession("shopify", req.session.id), (keys, shopifyID) => {
       var shopifyclient = new ShopifyClient(shopifyID);
@@ -317,7 +317,7 @@ module.exports.pushAlleBayProductsToShopify = function(req) {
               title: product.Title ? product.Title[0] : null,
               tags: product.ItemID,
               body_html: generateHTMLfromSpecifics(product.ItemSpecifics, product.ConditionDisplayName, product.ConditionDescription, product.Description),
-              product_type: product.PrimaryCategoryName[0],
+              product_type: product.PrimaryCategoryName[0].replace(/eBay /g, ''),
               options: [{name: "Title", position: "1"}],
               images: product.PictureURL.map((url) => {return {src: url};}),
               variants: [
@@ -330,7 +330,14 @@ module.exports.pushAlleBayProductsToShopify = function(req) {
               ]
             }
           };
-          return shopifyclient.post('admin/products.json', "", shopifyData);
+          return findCorrespondingID("ebay", "shopify", product.ItemID)
+          .then((shopifyProductID) => {
+            if (shopifyProductID == null) { // if not exists, then post
+              return shopifyclient.post('admin/products.json', "", shopifyData);
+            } else { // else, then put
+              return shopifyclient.put(`admin/products/${shopifyProductID}`, "", shopifyData)
+            }
+          });
         }).catch((err) => {
           console.log("Post data to shopify error:", err);
         }).then((response) => {

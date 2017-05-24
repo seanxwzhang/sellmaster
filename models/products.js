@@ -193,14 +193,35 @@ var getAllEbayItemsIds = function(req, sampleSize) {
         .then((response) => {
           return parserp(response);
         }).then((response) => {
+          // console.log(JSON.stringify(response,undefined, 4));
           if (response.GetMyeBaySellingResponse.Ack[0] == "Success") {
             console.log(`Got ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`);
+            if (! response.GetMyeBaySellingResponse.ActiveList) {
+              throw new AppError("No activelist in response for " + `Getting ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`, "operation");
+            }
+            if (! response.GetMyeBaySellingResponse.ActiveList[0].ItemArray) {
+              throw new AppError("No ItemArray in response for " + `Getting ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`, "operation");
+            }
+            return response.GetMyeBaySellingResponse.ActiveList[0].ItemArray[0].Item.map((eachItem) => {
+              return eachItem.ItemID[0];
+            })
+          } else if (response.GetMyeBaySellingResponse.Ack[0] == "Warning") {
+            console.log("ebay warning!")
+            console.log(`Got ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`);
+            if (! response.GetMyeBaySellingResponse.ActiveList) {
+              throw new AppError("No activelist in response for " + `Getting ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`, "operation");
+            }
+            if (! response.GetMyeBaySellingResponse.ActiveList[0].ItemArray) {
+              throw new AppError("No ItemArray in response for " + `Getting ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`, "operation");
+            }
             return response.GetMyeBaySellingResponse.ActiveList[0].ItemArray[0].Item.map((eachItem) => {
               return eachItem.ItemID[0];
             })
           } else {
             throw new AppError("Error occured in requesting item ids", "operation");
           }
+        }).catch((err) => {
+          console.log(err);
         })
       });
       return Promise.all(allRequests);

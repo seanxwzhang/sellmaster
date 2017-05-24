@@ -6,7 +6,7 @@
     {
       "columns": [
         {
-          "styleClass": "col-md-6",
+          "styleClass": "col-md-12",
           "widgets": [
             {
               "type": "markdown",
@@ -16,13 +16,7 @@
               "title": "Markdown",
               "titleTemplateUrl": "../src/templates/widget-title.html",
               "wid": "1495591294746-1"
-            }
-          ],
-          "cid": "1494916078279-1"
-        },
-        {
-          "styleClass": "col-md-6",
-          "widgets": [
+            },
             {
               "type": "clock",
               "config": {
@@ -32,17 +26,7 @@
               "title": "Clock",
               "titleTemplateUrl": "../src/templates/widget-title.html",
               "wid": "1494869001315-2"
-            }
-          ],
-          "cid": "1494916078279-1"
-        }
-      ]
-    },
-    {
-      "columns": [
-        {
-          "styleClass": "col-md-12",
-          "widgets": [
+            },
             {
               "type": "iframe",
               "config": {
@@ -66,7 +50,7 @@
             {
               "type": "table",
               "config": {
-                "url": "https://testsite.sellmaster.in/api/shopifylist",
+                "url": "https://localhost:8443/test.json",
                 "root": "products",
                 "columns": [
                   {
@@ -92,16 +76,16 @@
             {
               "type": "table",
               "config": {
-                "url": "https://testsite.sellmaster.in/api/ebaylist",
+                "url": "https://localhost:8443/test1.json",
                 "root": "products",
                 "columns": [
                   {
                     "title": "id",
-                    "path": "ItemID[0]"
+                    "path": "id"
                   },
                   {
                     "title": "title",
-                    "path": "Title[0]"
+                    "path": "title"
                   }
                 ]
               },

@@ -254,7 +254,7 @@ module.exports.getAllActiveEbaySellings = function(req) {
     })
     return Promise.all(allRequests);
   }).then((responses) => {
-    return responses;
+    return _.flatten(responses);
   })
 }
 

@@ -30,28 +30,21 @@ var sessionAuth = function(req, res, next) {
     }
 };
 
-router.get('/testapi', sessionAuth, (req, res, next) => {
+router.get('/ebaylist', sessionAuth, (req, res, next) => {
     getAllActiveEbaySellings(req)
     .then((data) => {
         res.status(200).send({products: data});
     })
 })
 
-router.get('/ebaylist', sessionAuth, (req, res, next) => {
+router.get('/requestEbay', sessionAuth, (req, res, next) => {
+    res.status(200).send("acquiring info from ebay");
+    req.query.all = true;
     productModel.getAllActiveEbaySellings(req)
     .then((data) => {
-        res.status(200).send({products: data});
+        console.log('done');
     }).catch((err) => {
         console.log(err);
-        if (err instanceof AppError) {
-            if (err.type == "authentication") {
-                res.redirect("/?from_call_back=true");
-            } else {
-                res.status(500).send(JSON.stringify(err));
-            }
-        } else {
-            res.status(500).send(JSON.stringify(err));
-        }
     })
 });
 
@@ -66,7 +59,8 @@ router.get('/shopifylist', sessionAuth, (req, res, next) => {
     })
 })
 
-router.get('/posttest', sessionAuth, (req, res, next) => {
+
+router.get('/dumpToShopify', sessionAuth, (req, res, next) => {
   // req.query.limit = 10;
   res.status(200).send("start synchronizing");
   productModel.pushAlleBayProductsToShopify(req);

@@ -120,8 +120,20 @@ app.use((err, req, res, next) => {
 var httpServer = http.createServer(app);
 var httpsServer = https.createServer(credentials, app);
 
+var io = require('socket.io')(httpsServer);
+
+io.on('connection', function (socket) {
+  socket.emit('test', { hello: 'world' });
+  socket.on('my other event', function (data) {
+    console.log(data);
+  });
+});
+
 httpServer.listen(process.env.UNSECURE_PORT);
 httpsServer.listen(process.env.SECURE_PORT);
 console.log(`Express started at port:${process.env.UNSECURE_PORT}`);
 console.log(`Express started at port:${process.env.SECURE_PORT}`);
+
+
+
 module.exports = {app};

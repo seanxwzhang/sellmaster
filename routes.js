@@ -128,4 +128,11 @@ router.use('/api', require('./controller/api.js'));
 
 router.use('/webhook', require('./controller/webhooks.js'));
 
+router.get('/testwebhook', (req, res, next) => {console.log("got GET request", req); res.status(200).send('OK');});
+
+router.put('/testwebhook', (req, res, next) => {console.log("got PUT request", req); res.status(200).send('OK');});
+
+router.post('/testwebhook', (req, res, next) => {console.log("got POST request", req); res.status(200).send('OK');});
+
+
 module.exports = router;

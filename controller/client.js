@@ -10,7 +10,7 @@ const Promise = require("bluebird");
 const {winston, redisClient} = require("../globals.js");
 const fs = require("fs");
 const RateLimiter = require('limiter').RateLimiter;
-
+const ebay_req_per_second = 10;
 /**
 * Ebay http client, mode is 'REST' or 'SOAP'
 **/
@@ -32,7 +32,7 @@ class eBayClient {
         'Accept': 'application/json',
         'X-EBAY-C-MARKETPLACE-ID': 'EBAY-US'
       };
-      this.limiter = new RateLimiter(2, 'second');
+      this.limiter = new RateLimiter(ebay_req_per_second, 'second');
       var that = this;
       this.applyLimiter = function(fn) {
         return function(url, qs, data) {
@@ -70,7 +70,7 @@ class eBayClient {
         'X-EBAY-API-CALL-NAME': '',
         'X-EBAY-API-IAF-TOKEN': ''
       };
-      this.limiter = new RateLimiter(2, 'second');
+      this.limiter = new RateLimiter(ebay_req_per_second, 'second');
       var that = this;
       this.applyLimiter = function(fn) {
         return function(apicall, data) {

@@ -7,7 +7,7 @@ const {eBayClient, ShopifyClient} = require("./client.js");
 const checkSession = require("./utility.js").checkSession;
 const productModel = require("../models/products.js");
 const getAlleBayProducts = require("../models/products.js").getAlleBayProducts;
-const getAllShopifyProducts = require("../models/products.js").getAllShopifyProducts;
+const getShopifyProducts = require("../models/products.js").getShopifyProducts;
 const getActiveEbaySellings = require("../models/products.js").getActiveEbaySellings;
 const getAllActiveEbaySellings = require("../models/products.js").getAllActiveEbaySellings;
 const postShopifyProduct = require("../models/products.js").postShopifyProduct;
@@ -39,7 +39,8 @@ router.get('/ebaylist', sessionAuth, (req, res, next) => {
 
 router.get('/requestEbay', sessionAuth, (req, res, next) => {
     res.status(200).send("acquiring info from ebay");
-    req.query.all = true;
+    // req.query.all = true;
+    req.query.ifsave = true;
     productModel.getAllActiveEbaySellings(req)
     .then((data) => {
         console.log('done');
@@ -48,8 +49,37 @@ router.get('/requestEbay', sessionAuth, (req, res, next) => {
     })
 });
 
+router.get('/requestShopify', sessionAuth, (req, res, next) => {
+  res.status(200).send('acquiring info from shopify');
+  productModel.requestAllShopifyProducts(req)
+  .then((data) => {
+    console.log('done');
+  }).catch((err) => {
+    console.log(err);
+  })
+})
+
+router.get('/requestAll', sessionAuth, (req, res, next) => {
+  res.status(200).send('acquiring info from ebay and shopify');
+  productModel.requestAll(req)
+  .then((data) => {
+    console.log('done');
+  }).catch((err) => {
+    console.log(err);
+  })
+})
+
+router.get('/getDifferencebyTitle', sessionAuth, (req, res, next) => {
+  productModel.getDifferencebyTitle(req)
+  .then((data) => {
+    res.status(200).send(data);
+  }).catch((err) => {
+    console.log(err);
+  })
+})
+
 router.get('/shopifylist', sessionAuth, (req, res, next) => {
-    getAllShopifyProducts(req)
+    getShopifyProducts(req)
     .then((data) => {
         var parsedData = JSON.parse(data);
         res.status(200).send(parsedData);

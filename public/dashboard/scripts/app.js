@@ -47,6 +47,29 @@ angular.module('adfDynamicSample', [
         redirectTo: '/boards/_1494796694507'
       });
   })
+  .factory('socket', function ($rootScope) {
+    var socket = io.connect();
+    return {
+      on: function (eventName, callback) {
+        socket.on(eventName, function () {
+          var args = arguments;
+          $rootScope.$apply(function () {
+            callback.apply(socket, args);
+          });
+        });
+      },
+      emit: function (eventName, data, callback) {
+        socket.emit(eventName, data, function () {
+          var args = arguments;
+          $rootScope.$apply(function () {
+            if (callback) {
+              callback.apply(socket, args);
+            }
+          });
+        })
+      }
+    };
+  })
   .service('storeService', function($http, $q){
     return {
       getAll: function(){
@@ -139,7 +162,7 @@ angular.module('adfDynamicSample', [
       });
     });
   })
-  .controller('dashboardCtrl', function($location, $rootScope, $scope, $routeParams, storeService, data){
+  .controller('dashboardCtrl', function($location, $rootScope, $scope, $routeParams, storeService, data, socket){
     this.name = $routeParams.id;
     this.model = data;
 
@@ -149,15 +172,63 @@ angular.module('adfDynamicSample', [
       $rootScope.$broadcast('navChanged');
     };
 
+    $scope.NumProducts = 0;
+    $scope.NumFetched = 0;
+    $scope.NumProcessed = 0;
+    $scope.NumUpdated = 0;
+    $scope.NumCreated = 0;
+
     $scope.$on('adfDashboardChanged', function(event, name, model) {
       storeService.set(name, model);
     });
+
+    socket.on('startCounting', function (data) {
+      $scope.progress = "counting number of products in eBay";
+    });
+    socket.on('startFetching', function (data) {
+      $scope.NumProducts = data;
+      $scope.progress = "start fetching products from eBay";
+    });
+    socket.on('fetched', function (data) {
+      $scope.NumFetched += data;
+      $scope.progress = `fetched ${$scope.NumFetched}/${$scope.NumProducts} products`;
+    });
+    socket.on('doneFetching', function (data) {
+      $scope.progress = `fetching finished, obtained ${$scope.NumFetched} products`;
+    });
+    socket.on('startProcessing', function (data) {
+      $scope.NumProducts = data;
+      $scope.progress = `start formatting and uploading ${$scope.NumProducts} products information`;
+    });
+    socket.on('processed', function (data) {
+      $scope.NumProcessed += data.num;
+      if (data.type == 'POST') {
+        $scope.NumCreated += data.num;
+      } else {
+        $scope.NumUpdated += data.num;
+      }
+      $scope.progress = `processed ${$scope.NumProcessed}/${$scope.NumProducts} products`;
+    });
+    socket.on('doneProcess', function (data) {
+      $scope.progress = `Finished synchronization, created ${$scope.NumCreated} products, updated ${$scope.NumUpdated} products`;
+    });
+
+
+    $scope.showSpinner = false;
 
     $scope.buttons = [{
       label: 'synchronize products',
       icon: 'ion-android-sync',
       click: function() {
-          console.log("I'm clicked!");
+          $scope.showSpinner = true;
+          $scope.NumProducts = 0;
+          $scope.NumFetched = 0;
+          $scope.NumProcessed = 0;
+          $scope.NumUpdated = 0;
+          $scope.NumCreated = 0;
+          socket.emit('startSynchronize');
       }
     }];
+
+
   });

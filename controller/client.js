@@ -10,7 +10,7 @@ const Promise = require("bluebird");
 const {winston, redisClient} = require("../globals.js");
 const fs = require("fs");
 const RateLimiter = require('limiter').RateLimiter;
-
+const ebay_req_per_second = 10;
 /**
 * Ebay http client, mode is 'REST' or 'SOAP'
 **/
@@ -32,6 +32,26 @@ class eBayClient {
         'Accept': 'application/json',
         'X-EBAY-C-MARKETPLACE-ID': 'EBAY-US'
       };
+      this.limiter = new RateLimiter(ebay_req_per_second, 'second');
+      var that = this;
+      this.applyLimiter = function(fn) {
+        return function(url, qs, data) {
+          return new Promise((resolve, reject) => {
+            that.limiter.removeTokens(1, function(err, remainingRequests) {
+              if (err) {
+                console.log("Limiter error:", err)
+              } else{
+                fn(url, qs, data)
+                .then((response) => {
+                  resolve(response);
+                }).catch((err) => {
+                  reject(err);
+                })
+              }
+            });
+          })
+        };
+      };
       this.get = this.REST_request('GET');
       this.post = this.REST_request('POST');
       this.put = this.REST_request('PUT');
@@ -50,6 +70,26 @@ class eBayClient {
         'X-EBAY-API-CALL-NAME': '',
         'X-EBAY-API-IAF-TOKEN': ''
       };
+      this.limiter = new RateLimiter(ebay_req_per_second, 'second');
+      var that = this;
+      this.applyLimiter = function(fn) {
+        return function(apicall, data) {
+          return new Promise((resolve, reject) => {
+            that.limiter.removeTokens(1, function(err, remainingRequests) {
+              if (err) {
+                console.log("Limiter error:", err)
+              } else{
+                fn(apicall, data)
+                .then((response) => {
+                  resolve(response);
+                }).catch((err) => {
+                  reject(err);
+                })
+              }
+            });
+          })
+        };
+      };
       this.get = this.SOAP_request('GET');
       this.post = this.SOAP_request('POST');
       this.put = this.SOAP_request('PUT');
@@ -59,7 +99,7 @@ class eBayClient {
 
   SOAP_request(method) {
     let client = this;
-    return (apicall, data) => {
+    let fn = (apicall, data) => {
       return new Promise((res, rej) => {
         if (typeof client.authKey !== "undefined") {
           res(client.headers);
@@ -94,12 +134,13 @@ class eBayClient {
           throw err;
         })
       })
-    }
+    };
+    return client.applyLimiter(fn);
   }
 
   REST_request(method) {
     let client = this;
-    return ((url, qs, data) => {
+    let fn = ((url, qs, data) => {
       let uri = [client.baseUrl, url].join('/');
       console.log(`${method}  ${uri}`);
       return new Promise((res, rej) => {
@@ -139,7 +180,8 @@ class eBayClient {
         })
       })
 
-    })
+    });
+    return client.applyLimiter(fn);
 
   }
 }

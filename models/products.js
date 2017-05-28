@@ -2,6 +2,8 @@
 
 const Promise = require("bluebird");
 const rp = require('request-promise');
+const fs = require('fs');
+const json2csv = require('json2csv');
 const request = require('request');
 const {winston, redisClient} = require("../globals.js");
 const {eBayClient, ShopifyClient} = require("../controller/client.js");
@@ -17,7 +19,8 @@ const parserp = require('xml2js-es6-promise');
 const _ = require('lodash');
 const maximum_gap_days = 119;
 const epp_default = 200;
-const {getProductName, getMappingKey, findCorrespondingID} = require('./utility');
+const epp_shopify = 250;
+const {getProductName, getMappingKey, findCorrespondingID, escapeTitle, getTitleIndexName} = require('./utility');
 // var redis_scanner = require('redis-scanner');
 // redis_scanner.bindScanners(redisClient);
 
@@ -110,12 +113,135 @@ module.exports.getAlleBayProducts = function(req) {
   })
 }
 
-module.exports.getAllShopifyProducts = function(req) {
+/**
+ * @return two lists, one contains title and id that only exists in ebay,
+ * another, contains title and id that only exists in shopify
+ **/
+module.exports.getDifferencebyTitle = function(req) {
+  return Promise.join(getIdBySession("ebay", req.session.id), getIdBySession("shopify", req.session.id), (ebayid, shopifyid) => {
+    return Promise.join(
+      redisClient.zrangebylexAsync(getTitleIndexName("ebay", ebayid), "[", "+"),
+      redisClient.zrangebylexAsync(getTitleIndexName("shopify", shopifyid), "[", "+"),
+      (ebayIndices, shopifyIndices) => {
+        console.log(`${ebayIndices.length} ebay products in record`);
+        console.log(`${shopifyIndices.length} shopify products in record`);
+        let intersections = [];
+        let ebayOnly = [];
+        let shopifyOnly = [];
+        let i = 0, j = 0, k = 0;
+        while( i < ebayIndices.length && j < shopifyIndices.length) {
+          console.log(`${i}/${ebayIndices.length} - ${j}/${shopifyIndices.length} compared`);
+          if (ebayIndices[i].split(':')[0] == shopifyIndices[j].split(':')[0]) {
+            intersections.push(ebayIndices[i].split(':')[0]);
+            i += 1, j += 1;
+          } else if (ebayIndices[i].split(':')[0] < shopifyIndices[j].split(':')[0]) {
+            i += 1;
+          } else {
+            j += 1;
+          }
+        }
+        console.log(`there are ${intersections.length} common products`);
+        i = 0, k = 0;
+        while( i < ebayIndices.length && k < intersections.length) {
+          if (ebayIndices[i].split(':')[0] != intersections[k]) {
+            ebayOnly.push(ebayIndices[i].split(':')[0]);
+          } else {
+            k += 1;
+          }
+          i += 1;
+        }
+        console.log(`there are ${ebayOnly.length} products only on eBay`);
+        j = 0, k = 0;
+        while( j < shopifyIndices.length && k < intersections.length) {
+          if (shopifyIndices[j].split(':')[0] != intersections[k]) {
+            shopifyOnly.push(shopifyIndices[j].split(':')[0]);
+          } else {
+            k += 1;
+          }
+          j += 1;
+        }
+        console.log(`there are ${shopifyOnly.length} products only on shopify`);
+        if (req.query.csv) {
+          let ebayOnlyCSV = ebayOnly.map((title) => {return {title}});
+          let shopifyOnlyCSV = shopifyOnly.map((title) => {return {title}});
+          let intersectionsCSV = intersections.map((title) => {return {title}});
+          let ebaycsv = json2csv({ data: ebayOnlyCSV, fields: ['title'] }),
+              shopifycsv = json2csv({ data: shopifyOnlyCSV, fields: ['title']}),
+              commoncsv = json2csv({ data: intersectionsCSV, fields: ['title']});
+          fs.writeFile('./ebayOnly.csv', ebaycsv, function(err) {
+            if (err) throw err;
+            console.log('file saved');
+          });
+          fs.writeFile('./shopifyOnly.csv', shopifycsv, function(err) {
+            if (err) throw err;
+            console.log('file saved');
+          });
+          fs.writeFile('./commonProducts.csv', commoncsv, function(err) {
+            if (err) throw err;
+            console.log('file saved');
+          });
+        }
+        return {
+          'ebayOnly': ebayOnly,
+          'shopifyOnly': shopifyOnly,
+          'CommonProducts': intersections
+        }
+      })
+    });
+}
+
+module.exports.getShopifyProducts = function(req) {
   return Promise.join(getTokenBySession("shopify", req.session.id), getIdBySession("shopify", req.session.id), (token, id) => {
     var shopifyclient = new ShopifyClient(id);
     return shopifyclient.get('admin/products.json');
   });
 }
+
+module.exports.requestAllShopifyProducts = function(req) {
+  return getIdBySession("shopify", req.session.id)
+  .then((shopifyid) => {
+    var shopifyclient = new ShopifyClient(shopifyid);
+    return shopifyclient.get('admin/products/count.json')
+    .then((response) => {
+      return JSON.parse(response);
+    }).then((response) => {
+      if (response.count) {
+        var np = Math.ceil(response.count / epp_shopify);
+        var pages = Array.from(new Array(np),(val,index)=>index + 1);
+        if (! req.query.all) {
+          pages = [1];
+        }
+        var requests = pages.map((page) => {
+          return shopifyclient.get(`admin/products.json?limit=${epp_shopify}&page=${page}`)
+          .then((res) => {
+            var resobj = JSON.parse(res);
+            var redisRequests = resobj.products.map((product) => {
+              // save the product, then update title index
+              var safeTitle = escapeTitle(product.title);
+              var index = safeTitle + ':' + product.id.toString();
+              return Promise.join(
+                redisClient.setAsync(getProductName("shopify", shopifyid, product.id.toString()), JSON.stringify(product)),
+                redisClient.zaddAsync(getTitleIndexName("shopify", shopifyid), 0, index),
+                (res1, res2) => {
+                  console.log(`saved shopify product ${product.id}`);
+                  return 'ok';
+                });
+              });
+            return Promise.all(redisRequests);
+          }).then((res) => {
+            console.log(`page ${page} processed`);
+          })
+        });
+        return Promise.all(requests);
+      } else {
+        throw new AppError("can't get the count of all shopify products", "operation");
+      }
+    }).then((response) => {
+      console.log("all shopify products retrieved, indecies built, done");
+      return 'ok';
+    });
+  });
+};
 
 module.exports.getActiveEbaySellings = function(req) {
   return Promise.join(getTokenBySession("ebay", req.session.id), getIdBySession("ebay", req.session.id), (token, id) => {
@@ -193,14 +319,35 @@ var getAllEbayItemsIds = function(req, sampleSize) {
         .then((response) => {
           return parserp(response);
         }).then((response) => {
+          // console.log(JSON.stringify(response,undefined, 4));
           if (response.GetMyeBaySellingResponse.Ack[0] == "Success") {
             console.log(`Got ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`);
+            if (! response.GetMyeBaySellingResponse.ActiveList) {
+              throw new AppError("No activelist in response for " + `Getting ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`, "operation");
+            }
+            if (! response.GetMyeBaySellingResponse.ActiveList[0].ItemArray) {
+              throw new AppError("No ItemArray in response for " + `Getting ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`, "operation");
+            }
+            return response.GetMyeBaySellingResponse.ActiveList[0].ItemArray[0].Item.map((eachItem) => {
+              return eachItem.ItemID[0];
+            })
+          } else if (response.GetMyeBaySellingResponse.Ack[0] == "Warning") {
+            console.log("ebay warning!")
+            console.log(`Got ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`);
+            if (! response.GetMyeBaySellingResponse.ActiveList) {
+              throw new AppError("No activelist in response for " + `Getting ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`, "operation");
+            }
+            if (! response.GetMyeBaySellingResponse.ActiveList[0].ItemArray) {
+              throw new AppError("No ItemArray in response for " + `Getting ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`, "operation");
+            }
             return response.GetMyeBaySellingResponse.ActiveList[0].ItemArray[0].Item.map((eachItem) => {
               return eachItem.ItemID[0];
             })
           } else {
             throw new AppError("Error occured in requesting item ids", "operation");
           }
+        }).catch((err) => {
+          console.log(err);
         })
       });
       return Promise.all(allRequests);
@@ -212,7 +359,7 @@ var getAllEbayItemsIds = function(req, sampleSize) {
 
 
 module.exports.getAllActiveEbaySellings = function(req) {
-  var ifSave = req.query.ifsave;
+  var ifsave = req.query.ifsave;
   var ebayId = null;
   var sampleSize = req.query.all ? "all" : 35;
   const chunkSize = 20;
@@ -236,12 +383,19 @@ module.exports.getAllActiveEbaySellings = function(req) {
       }).then((Items) => {
         return _.flatten(Items);
       }).then((products) => {
-        return Promise.all(products.map((product, index) => {
-          console.log(getProductName("ebay", ebayId, product.ItemID));
-          if (ifSave) {
-            return redisClient.setAsync(getProductName("ebay", ebayId, product.ItemID), JSON.stringify(product))
-              .then((result) => {
-                console.log(`saved ${index}/${products.length} product info`)
+        return Promise.all(products.map((product, ind) => {
+          console.log("processing " + getProductName("ebay", ebayId, product.ItemID));
+          if (ifsave) {
+            var safeTitle = escapeTitle(product.Title[0]);
+            var index = safeTitle + ':' + product.ItemID[0].toString();
+            return Promise.join(
+              redisClient.setAsync(getProductName("ebay", ebayId, product.ItemID), JSON.stringify(product)),
+              redisClient.zaddAsync(getTitleIndexName("ebay", ebayId), 0, index),
+              (res1, res2) => {
+                return 'ok';
+              }
+            ).then((result) => {
+                console.log(`saved ${ind}/${products.length} product: ${index}`);
                 return `${product.ItemID} ok`;
               }).catch((err) => {
                 return `${product.ItemID} bad`;
@@ -254,7 +408,8 @@ module.exports.getAllActiveEbaySellings = function(req) {
     })
     return Promise.all(allRequests);
   }).then((responses) => {
-    return responses;
+    console.log("ebay done");
+    return _.flatten(responses);
   })
 }
 
@@ -371,4 +526,15 @@ module.exports.postShopifyProduct = function(data) {
       reject(err);
     })
   })
+}
+
+module.exports.requestAll = function(req) {
+  return Promise.join(
+    exports.getAllActiveEbaySellings(req),
+    exports.requestAllShopifyProducts(req),
+    (res1, res2) => {
+      console.log("requesting done!");
+      return "done";
+  });
+
 }

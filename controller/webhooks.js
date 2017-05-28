@@ -7,23 +7,27 @@ var parser = require('xml2js');
 var router = require('express').Router();
 var util = require('util');
 var http = require('http');
+const crypto = require('crypto');
 const {eBayClient, ShopifyClient} = require('./client.js');
+const findCorrespondingID = require('../models/utility.js').findCorrespondingID;
+
 
 /**
  * webhook handler for item deletion from shopify
  * 1. should check if the item has been deleted from ebay already
  * 2. if not, delete it from ebay
  **/
-router.get('/deleteItemCallback/shopify', (req, res, next) => {
+/* router.get('/deleteItemCallback/shopify', (req, res, next) => {
     var ebayClient = new ebayClient('dsadasdasd');
     ebayClient.delete('dasjkdgasjhdgjhasgdhja')
     .then((result) => {
         console.log("yeah, deleted!");
     })
-})
+}) */
 
-function ebay_changeQuantity(itemid,quantity,res){
+function ebay_changeQuantity(itemid,quantity,timetotry,res){
 	//var res; 
+	if(timetotry==0)return;
 	var xmlbdy = {
 		'ReviseItemRequest':{
 			'@xmlns':  "urn:ebay:apis:eBLBaseComponents",
@@ -47,9 +51,12 @@ function ebay_changeQuantity(itemid,quantity,res){
 		parser.parseString(result,function(err,resdata){
 			console.dir(resdata);
 			if(resdata.ReviseItemResponse.Ack[0]=="Success"||resdata.ReviseItemResponse.Ack[0]=="Warning"){console.log("Item revision succeeded");
-				res.status(200).send("Item with id " +itemid + " revision succeeded. New quantity is now " + quantity);
+				if(res){res.status(200).send("Item with id " +itemid + " revision succeeded. New quantity is now " + quantity);}
 			}
-			else{res.status(200).send("Item with id " +itemid + " revision failed.");}
+			else{
+				if(res){res.status(503).send("Item with id " +itemid + " revision failed.");}
+				else ebay_changeQuantity(itemid,quantity,timetotry-1);
+			}
 			//res=resdata.ReviseItemResponse.Ack[0];
 			
 		});
@@ -113,7 +120,7 @@ function ebay_getItem(itemid,res){
 				//console.dir(resdata.GetItemResponse.Item[0].Quantity[0]);
 				//can do something with the quantity here call to revise the quantity on shopify for example
 			}
-			else{res.status(200).send("Item with id " +itemid + " retrieve failed.");}
+			else{res.status(503).send("Item with id " +itemid + " retrieve failed.");}
 			
 			
 		});
@@ -134,7 +141,8 @@ function shopify_getItem(itemid,res){
     });
 }
 
-function ebay_endItem(itemid,res){
+function ebay_endItem(itemid,timetotry,res){
+	if(timetotry==0)return;
 	var xmlbdy = {
 		'EndItemRequest' : {
 			'@xmlns':  "urn:ebay:apis:eBLBaseComponents",
@@ -154,11 +162,14 @@ function ebay_endItem(itemid,res){
 		parser.parseString(result,function(err,resdata){
 			console.log(util.inspect(resdata,false,null));
 			if(resdata.EndItemResponse.Ack[0]=="Success"||resdata.EndItemResponse.Ack[0]=="Warning"){console.log("Item retrieve succeeded");
-				res.status(200).send("Item with id " + itemid + " ended successfully." );
+				if(res){res.status(200).send("Item with id " + itemid + " ended successfully." );}
 				//console.dir(resdata.GetItemResponse.Item[0].Quantity[0]);
 				//can do something with the quantity here call to revise the quantity on shopify for example
 			}
-			else{res.status(200).send("Item with id " +itemid + " failed to end.");}
+			else{
+				if(res){res.status(503).send("Item with id " +itemid + " failed to end.");}
+				else ebay_endItem(itemid,timetotry-1);
+			}
 			
 			
 		});
@@ -297,7 +308,7 @@ var test = {
 		parser.parseString(result,function(err,resdata){
 			console.log(util.inspect(resdata,false,null));
 			res.status(200).send(JSON.stringify(resdata,null,2));
-			
+			console.log(test);
 		});
         
     }).catch((err) => {
@@ -342,47 +353,118 @@ router.post('/testeBayWebhook',(req,res,err) =>{
 //skeleton respond to shopify webhook, respond with 200 and empty message
 router.post('/testShopifyWebhook',(req,res,err) =>{
 	res.status(200).end();
-	console.log(util.inspect(req.body, false, null));
+	//console.log(util.inspect(req.body, false, null));
 	//TODO security check
-
+	var Shopify_secret = '86a3ca31dbfd63d39acdfcec9744e298df2b2275fa8f905fad7f90f242332040'; //need secret here
+	if(typeof req.get('X-Shopify-Hmac-Sha256') == 'undefined')return;
+	//if(req.get('X-Shopify-Shop-Domain') != 'sellmaster2.myshopify.com') return; //need store name
+	var webhookHash = req.get('X-Shopify-Hmac-Sha256');
+	console.log('Webhook hash is ' + webhookHash);
+	const hmac = crypto.createHmac('sha256',Shopify_secret);
+	hmac.update(req.rawBody);
+	var resultHash = hmac.digest('base64');
+	console.log('resultHash is : ' + resultHash);
+	//if(webhookHash!=resultHash)return; 
+	
 	//get_id and quantity
-	var Shopify_id = [];
+	console.log(JSON.stringify(req.body).length);
+	console.log(req.rawBody.length);
+	/* var Shopify_id = [];
 	var Shopify_quantity = [];
+	var Shopify_title = [];  */
+	 
 	for(var i = 0; i < req.body.variants.length;i++){
-		Shopify_id.push(req.body.variants[i].id);
+		/* Shopify_id.push(req.body.variants[i].id);
 		console.log("Sh id: "+ req.body.variants[i].id);
 		Shopify_quantity.push(req.body.variants[i].inventory_quantity);
 		console.log("Sh quan: "+ req.body.variants[i].inventory_quantity);		
-	}
-	for(var i = 0; i< Shopify_id.length; i++){
+		//Shopify_title.push((req.body.variants[i].title == "Default Title" ? req.body.title : req.body.variants[i].title));
+		Shopify_title.push(req.body.title);
+		console.log("Sh title: " + Shopify_title[i]); */
+		var Shopify_id = req.body.variants[i].id;
+		var Shopify_quantity = req.body.variants[i].inventory_quantity;
+		var Shopify_title = (req.body.variants[i].title == "Default Title" ? req.body.title : req.body.variants[i].title);
+	//for(var i = 0; i< Shopify_id.length; i++){
 		//retreive ebay corresponding id
 		
-		//update quantity
-		if(Shopify_quantity[i]==0){
-			//Call enditem function			
-		}
-		else{
-			//Call reviseitem quantity function			
-		}
+		findCorrespondingID("ebay", "shopify", Shopify_id[i])
+		.then((res) => {
+			console.log(res == null);
+			if(res!=null){
+				var ebay_id = res;
+				//update quantity
+				var options = {};
+				if(Shopify_quantity==0){
+					//Call enditem function	
+					/* options = {
+						host: ( process.env.EBAY_ENV == "sandbox" ? "http://localhost:8080" : "http://testsites.sellmaster.in" ),
+						path: '/webhook/testEndItemQuantity/ebay/' + ebay_id
+					}; */
+					ebay_endItem(ebay_id,5);									
+				}
+				else{
+					//Call reviseitem quantity function	
+					/* options = {
+						host: ( process.env.EBAY_ENV == "sandbox" ? "http://localhost:8080" : "http://testsites.sellmaster.in" ),
+						path: '/webhook/testReviseItemQuantity/ebay/' + ebay_id + '/' + Shopify_quantity[i]
+					}; */
+					ebay_changeQuantity(ebay_id,Shopify_quantity,5);
+				}
+				
+				//try_till_success(options);
+				
+			}
+			else{
+				console.log(Shopify_id);
+				console.log(Shopify_title);
+				console.log(Shopify_quantity);
+				findItembyTitle(Shopify_title,Shopify_quantity);				
+			}
+			
+			
+			
+			});
 		
 	}
+		
+	//} 
 	
 });
 
+function try_till_success(options){
+	console.log('trying');
+	var req = http.request(options,(res) =>{
+				console.log(statusCode);
+				if(res.statusCode != 200){
+					try_till_success(options);
+				}					
+			});
+	req.end();		
+}
 
 
 function findItembyTitle(title,quantity){
 	//console.log(process.env.EBAY_SANDBOX_CLIENT_ID);
 	var resStr = '';
 	
-	var securityID = process.env.EBAY_SANDBOX_CLIENT_ID; //may change to official
+	var hostAddr;
+	var securityID;
+	console.log(process.env.EBAY_ENV);
+	if(process.env.EBAY_ENV == "sandbox"){
+		securityID = process.env.EBAY_SANDBOX_CLIENT_ID; //may change to official
+		hostAddr = 'svcs.sandbox.ebay.com';
+	}
+	else {
+		securityID = process.env.EBAY_PROD_CLIENT_ID;
+		hostAddr = 'svcs.ebay.com';
+	}
 	var sellerConstraint = '&itemFilter.name=Seller&itemFilter.value=testuser_shuangzhang'; //seller name can subject to change
 	var opParam = 'OPERATION-NAME=findItemsByKeywords&SERVICE-VERSION=1.13.0&RESPONSE-DATA-FORMAT=XML&SECURITY-APPNAME=';
 	var payloadParam = 'REST-PAYLOAD&keywords=' + title.replace(/ /g,'%20') + sellerConstraint + '&paginationInput.entriesPerPage=200';
 	
 	
 	var options = {
-		host: 'svcs.sandbox.ebay.com',
+		host: hostAddr,
 		path: '/services/search/FindingService/v1?' + opParam + securityID + '&' + payloadParam		
 	};
 	var req = http.request(options, function(response){
@@ -398,6 +480,26 @@ function findItembyTitle(title,quantity){
 					console.log('itemid is '+itemID);
 					console.log(quantity);
 					//do something with the item and quantity.
+					var options_new = {};
+					if(quantity == 0){
+						/* options_new = {
+							host: ( process.env.EBAY_ENV == "sandbox" ? "http://localhost:8080" : "http://testsites.sellmaster.in" ),
+							path: '/webhook/testEndItemQuantity/ebay/' + itemID
+						}; */
+						ebay_endItem(itemID,5);
+					}
+					else{
+						/* options_new = {
+							host: ( process.env.EBAY_ENV == "sandbox" ? "http://localhost:8080" : "http://testsites.sellmaster.in" ),
+							path: '/webhook/testReviseItemQuantity/ebay/' + itemID + '/' + quantity
+						};	 */				
+						ebay_changeQuantity(itemID,quantity,5);
+					}
+					//console.dir(options_new);
+					//try_till_success(options_new); 
+				}
+				else{
+					findItembyTitle(title,quantity);
 				}
 			});
 		});

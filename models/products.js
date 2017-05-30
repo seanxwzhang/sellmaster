@@ -375,13 +375,36 @@ module.exports.getAllActiveEbaySellings = function(req) {
         version: 967,
         IncludeSelector: 'Details,Description,ItemSpecifics,Variations',
         ItemID: idchunk.join(',')
-      }, '').then((response) => {
+      }, '').catch((err) => {
+        console.log("error in step6", err);
+        if (err.statusCode == 400) { // hardcode fix for unknown 400 error
+          return ebayclient.get(`shopping`, {
+            callname: "GetMultipleItems",
+            responseencoding: "XML",
+            appid: process.env.EBAY_PROD_CLIENT_ID,
+            version: 967,
+            IncludeSelector: 'Details,Description,ItemSpecifics,Variations',
+            ItemID: idchunk.join(',')
+          }, '');
+        } else {
+          process.exit(1);
+        }
+      }).then((response) => {
         console.log(`Obtained ${index * chunkSize}th to ${Math.min((index + 1) * chunkSize, ids.length)}th items`);
         return parserp(response);
+      }).catch((err) => {
+        console.log("error in step5", err);
+        process.exit(1);
       }).then((resObject) => {
         return resObject.GetMultipleItemsResponse.Item;
+      }).catch((err) => {
+        console.log("error in step4", err);
+        process.exit(1);
       }).then((Items) => {
         return _.flatten(Items);
+      }).catch((err) => {
+        console.log("error in step3", err);
+        process.exit(1);
       }).then((products) => {
         return Promise.all(products.map((product, ind) => {
           console.log("processing " + getProductName("ebay", ebayId, product.ItemID));
@@ -403,13 +426,22 @@ module.exports.getAllActiveEbaySellings = function(req) {
           } else {
             return product;
           }
-        }))
+        })).catch((err) => {
+          console.log("error in step1", err);
+          process.exit(1);
+        })
+      }).catch((err) => {
+        console.log("error in step2", err);
+        process.exit(1);
       })
     })
     return Promise.all(allRequests);
   }).then((responses) => {
     console.log("ebay done");
     return _.flatten(responses);
+  }).catch((err) => {
+    console.log("error in getAllActiveEbaySellings", err);
+    process.exit(1);
   })
 }
 
@@ -474,7 +506,7 @@ module.exports.pushAlleBayProductsToShopify = function(req) {
               body_html: generateHTMLfromSpecifics(product.ItemSpecifics, product.ConditionDisplayName, product.ConditionDescription, product.Description),
               product_type: product.PrimaryCategoryName[0].replace(/eBay /g, ''),
               options: [{name: "Title", position: "1"}],
-              images: product.PictureURL.map((url) => {return {src: url};}),
+              images: product.PictureURL && product.PictureURL.length ? product.PictureURL.map((url) => {return {src: url};}) : null,
               variants: [
                 {
                   price: product.CurrentPrice[0]['_'],
@@ -485,7 +517,7 @@ module.exports.pushAlleBayProductsToShopify = function(req) {
               ]
             }
           };
-          return findCorrespondingID("ebay", "shopify", product.ItemID)
+          return findCorrespondingID("ebay", ebayID, "shopify", shopifyID, product.ItemID)
           .then((shopifyProductID) => {
             if (shopifyProductID == null) { // if not exists, then post
               return shopifyclient.post('admin/products.json', "", shopifyData);
@@ -498,9 +530,10 @@ module.exports.pushAlleBayProductsToShopify = function(req) {
         }).then((response) => {
           if (response && response.product) {
               console.log(`${index}/${keys.length} product ${response.product.id} has been posted, creating mapping for it`);
+              // console.log(ebayID + ',' + shopifyID);
               return Promise.join(
-                redisClient.setAsync(getMappingKey("ebay", "shopify", response.product.tags), response.product.id),
-                redisClient.setAsync(getMappingKey("shopify", "ebay", response.product.id), response.product.tags),
+                redisClient.setAsync(getMappingKey("ebay", ebayID, "shopify", shopifyID, response.product.tags), response.product.id),
+                redisClient.setAsync(getMappingKey("shopify", shopifyID, "ebay", ebayID, response.product.id), response.product.tags),
                 (res1, res2) => {
                   console.log("mapping created");
                   return 'ok';

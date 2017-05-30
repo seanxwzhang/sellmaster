@@ -128,7 +128,7 @@ class eBayClient {
           if (response.statusCode >= 200 && response.statusCode < 300) {
             return response.body;
           } else {
-            throw response.body;
+            throw response;
           }
         }).catch((err) => {
           throw err;
@@ -173,7 +173,7 @@ class eBayClient {
           if (response.statusCode >= 200 && response.statusCode < 300) {
             return response.body;
           } else {
-            throw response.body;
+            throw response;
           }
         }).catch((err) => {
           throw err;
@@ -260,7 +260,7 @@ class ShopifyClient {
           if (response.statusCode >= 200 && response.statusCode < 300) {
             return response.body;
           } else {
-            return response.body;
+            return response;
           }
         }).catch((err) => {
           throw err;

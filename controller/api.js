@@ -103,8 +103,21 @@ router.get('/dumpToShopify', sessionAuth, (req, res, next) => {
  * 1. perform synchronization with ebayClient and ShopifyClient
  * 2. could render a progress interface
  **/
-router.get('/startSynchonize', (req, res, next) => {
-
+router.get('/startSynchonize', sessionAuth, (req, res, next) => {
+  res.status(200).send('acquiring info from ebay and shopify');
+  req.query.all = true;
+  req.query.ifsave = true;
+  req.query.csv = true;
+  console.log("===================requesting info from eBay and Shopify======================");
+  productModel.requestAll(req)
+  .then((data) => {
+    console.log("=======synching eBay producsts to Shopify, skipping existing shopify products=========");
+    return productModel.pushAlleBayProductsToShopify(req)
+  }).catch((err) => {
+    console.log(err);
+  }).then((response) => {
+    console.log("===================synchronization complete======================");
+  })
 })
 
 

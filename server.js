@@ -18,11 +18,16 @@ const session = require('express-session');
 const RedisStore = require('connect-redis')(session);
 require('body-parser-xml')(bodyParser);
 
-if (process.env.NODE_ENV == 'prod') {
+if (process.env.NODE_ENV == 'prod' && process.env.HOSTNAME=='www.sellmaster.in') {
     var ca_bundle = fs.readFileSync('sslcert/ca_bundle.crt', 'utf8');
     var privateKey  = fs.readFileSync('sslcert/private.key', 'utf8');
     var certificate = fs.readFileSync('sslcert/certificate.crt', 'utf8');
     var credentials = {ca: ca_bundle, key: privateKey, cert: certificate};
+} else if (process.env.NODE_ENV == 'prod' && process.env.HOSTNAME=='testsite.sellmaster.in') {
+  var ca_bundle = fs.readFileSync('sslcert/ca_bundle_test.crt', 'utf8');
+  var privateKey  = fs.readFileSync('sslcert/private_test.key', 'utf8');
+  var certificate = fs.readFileSync('sslcert/certificate_test.crt', 'utf8');
+  var credentials = {ca: ca_bundle, key: privateKey, cert: certificate};
 } else {
     var privateKey  = fs.readFileSync('sslcert/localhost.key', 'utf8');
     var certificate = fs.readFileSync('sslcert/localhost.crt', 'utf8');
@@ -101,8 +106,13 @@ app.use(function(req, res, next) {
 });
 // set static serving
 app.use(express.static('public'));
+// create server
+var httpServer = http.createServer(app);
+var httpsServer = https.createServer(credentials, app);
+// establish socket
+var io = require('socket.io')(httpsServer);
 // delegate routing to routes.js
-app.use('/', require('./routes.js'));
+app.use('/', require('./routes.js')(io));
 
 // define error handler
 app.use((err, req, res, next) => {
@@ -117,17 +127,7 @@ app.use((err, req, res, next) => {
     }
 })
 
-var httpServer = http.createServer(app);
-var httpsServer = https.createServer(credentials, app);
 
-var io = require('socket.io')(httpsServer);
-
-io.on('connection', function (socket) {
-  socket.emit('test', { hello: 'world' });
-  socket.on('my other event', function (data) {
-    console.log(data);
-  });
-});
 
 httpServer.listen(process.env.UNSECURE_PORT);
 httpsServer.listen(process.env.SECURE_PORT);
@@ -135,5 +135,4 @@ console.log(`Express started at port:${process.env.UNSECURE_PORT}`);
 console.log(`Express started at port:${process.env.SECURE_PORT}`);
 
 
-
-module.exports = {app};
+module.exports = {app, httpsServer};

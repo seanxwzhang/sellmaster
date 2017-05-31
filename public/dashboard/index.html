@@ -40,10 +40,11 @@
     <link href="components/angular-dashboard-framework/dist/angular-dashboard-framework.min.css" rel="stylesheet">
     <link href="components/adf-widget-clock/dist/adf-widget-clock.min.css" rel="stylesheet">
     <link href="components/adf-widget-iframe/dist/adf-widget-iframe.min.css" rel="stylesheet">
-    <link href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet">
+    <link href="components/Ionicons/css/ionicons.min.css" rel="stylesheet">
     <link href="styles/app.css" rel="stylesheet">
     <link href="../css/bootstrap-material-design.min.css" rel="stylesheet">
     <link href="components/ng-material-floating-button/mfb/dist/mfb.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="../css/animate.css" type="text/css">
     <link href="styles/custom.css" rel="stylesheet">
     <!-- endbuild -->
 
@@ -63,7 +64,11 @@
   </head>
 
   <body ng-app="adfDynamicSample">
-
+    <div class="progress" ng-show="progressbar">
+      <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100" style="width: {{progressPercent}}%">
+        <span class="sr-only">45% Complete</span>
+      </div>
+    </div>
     <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
       <div class="container" ng-controller="navigationCtrl as nav">
         <div class="navbar-header">
@@ -94,6 +99,7 @@
     <!-- jquery -->
     <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
     <script src="../js/jquery.sticky.js"></script>
+    <script src="../js/bootstrap-notify.min.js"></script>
     <!-- components -->
     <script type="text/javascript" src="components/Sortable/Sortable.min.js"></script>
     <script type="text/javascript" src="components/angular/angular.min.js"></script>
@@ -102,6 +108,7 @@
     <script type="text/javascript" src="components/angular-bootstrap/ui-bootstrap-tpls.min.js"></script>
     <script type="text/javascript" src="components/angular-dashboard-framework/dist/angular-dashboard-framework.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="components/axios/dist/axios.min.js"></script>
 
     <!-- scripts -->
     <script type="text/javascript" src="scripts/app.js"></script>

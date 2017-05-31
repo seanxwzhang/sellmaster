@@ -86,7 +86,7 @@ var checkSession = function(req) {
           return;
         }
         if (getTokenFieldName("shopify") in obj) {
-          result['shopify'] = true;
+          result['shopify'] = obj['shopifyId'];
         }
         if (getTokenFieldName("ebay") in obj && 'ebaylast_refreshed_at' in obj && 'ebayrefresh_token' in obj && 'ebayexpires_in' in obj) {
           var last_updated_at = moment(obj[`ebaylast_refreshed_at`]);
@@ -125,7 +125,7 @@ var checkSession = function(req) {
                   redisClient.setAsync(getTokenKey("ebay", ebayid), response.body.access_token),
                   (ans1, ans2) => {
                     console.log("token refreshed");
-                    result['ebay'] = true;
+                    result['ebay'] = ebayid;
                     resolve(result);
                   }
                 )
@@ -136,7 +136,7 @@ var checkSession = function(req) {
             })
           } else {
             // console.log("not expired!");
-            result['ebay'] = true;
+            result['ebay'] = obj['ebayId'];
             resolve(result);
           }
         } else {
@@ -158,7 +158,26 @@ var checkAuthError = function(response) {
   }
 }
 
-module.exports = {getStoreName, getScope, getCallbackUrl, getNonceKey, getTokenKey, getTokenBySession, checkSession, setTokenIdBySession, getIdBySession, removeTokenIdBySession, checkAuthError};
+var getStores = function(req) {
+  return redisClient.hgetallAsync(getSessionKey(req.session.id))
+  .then((obj) => {
+    // console.log("obj here", obj);
+    var result = {};
+    if ('shopifyId' in obj) {
+      result['shopifyId'] = obj['shopifyId'];
+    }
+    if ('ebayId' in obj) {
+      result['ebayId'] = obj['ebayId'];
+    }
+    return result;
+  })
+}
+
+var getRoomName = function(ids) {
+  return `room-${ids.ebayId}-${ids.shopifyId}`;
+}
+
+module.exports = {getStoreName, getScope, getCallbackUrl, getNonceKey, getTokenKey, getTokenBySession, checkSession, setTokenIdBySession, getIdBySession, removeTokenIdBySession, checkAuthError, getStores, getRoomName};
 
 module.exports.test = 1;
 // console.log(module.exports);

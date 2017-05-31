@@ -55,6 +55,16 @@ app.use(favicon(__dirname + '/public/favicon.ico'));
 // compression
 app.use(compression());
 // add body parser middle ware
+app.use(function(req, res, next) {
+  req.rawBody = '';
+  //req.setEncoding('utf8');
+
+  req.on('data', function(chunk) { 
+    req.rawBody += chunk;
+  });
+
+  next();
+});
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(bodyParser.xml({limit: '1MB'}));

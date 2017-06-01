@@ -363,9 +363,16 @@ router.post('/testShopifyWebhook',(req,res,err) =>{
 	//var Shopify_secret = '86a3ca31dbfd63d39acdfcec9744e298df2b2275fa8f905fad7f90f242332040'; //need secret here
 	var Shopify_secret = process.env.APP_SECRET;
 	console.log('Shopify_secret is '+Shopify_secret);
-	if(typeof req.get('X-Shopify-Hmac-Sha256') == 'undefined')return;
+	var webhookHash;
+	if(typeof req.get('X-Shopify-Hmac-Sha256') != 'undefined'){
+		webhookHash = req.get('X-Shopify-Hmac-Sha256');		
+	}
+	else if (typeof req.get('HTTP_X_SHOPIFY_HMAC_SHA256') != 'undefined'){
+		webhookHash = req.get('HTTP_X_SHOPIFY_HMAC_SHA256');
+	}
+	else return;
 	//if(req.get('X-Shopify-Shop-Domain') != 'sellmaster2.myshopify.com') return; //need store name
-	var webhookHash = req.get('X-Shopify-Hmac-Sha256');
+	//var webhookHash = req.get('X-Shopify-Hmac-Sha256');
 	console.log('Webhook hash is ' + webhookHash);
 	const hmac = crypto.createHmac('sha256',Shopify_secret);
 	hmac.update(req.rawBody);

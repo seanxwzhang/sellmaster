@@ -12,6 +12,11 @@ const {eBayClient, ShopifyClient} = require('./client.js');
 const findCorrespondingID = require('../models/utility.js').findCorrespondingID;
 
 
+//READ THIS
+//Need to take care of the hard coded user name for each Ebayclient object and Shopifyclient and also the sellerName(ebay store name) variable in findItembyTitle function 
+
+
+
 /**
  * webhook handler for item deletion from shopify
  * 1. should check if the item has been deleted from ebay already
@@ -355,17 +360,28 @@ router.post('/testShopifyWebhook',(req,res,err) =>{
 	res.status(200).end();
 	//console.log(util.inspect(req.body, false, null));
 	//TODO security check
-	var Shopify_secret = '86a3ca31dbfd63d39acdfcec9744e298df2b2275fa8f905fad7f90f242332040'; //need secret here
-	if(typeof req.get('X-Shopify-Hmac-Sha256') == 'undefined')return;
+	//var Shopify_secret = '86a3ca31dbfd63d39acdfcec9744e298df2b2275fa8f905fad7f90f242332040'; //need secret here
+	var Shopify_secret = process.env.APP_SECRET;
+	console.log('Shopify_secret is '+Shopify_secret);
+	var webhookHash;
+	if(typeof req.get('X-Shopify-Hmac-Sha256') != 'undefined'){
+		webhookHash = req.get('X-Shopify-Hmac-Sha256');		
+	}
+	else if (typeof req.get('HTTP_X_SHOPIFY_HMAC_SHA256') != 'undefined'){
+		webhookHash = req.get('HTTP_X_SHOPIFY_HMAC_SHA256');
+	}
+	else return;
 	//if(req.get('X-Shopify-Shop-Domain') != 'sellmaster2.myshopify.com') return; //need store name
-	var webhookHash = req.get('X-Shopify-Hmac-Sha256');
+	//var webhookHash = req.get('X-Shopify-Hmac-Sha256');
 	console.log('Webhook hash is ' + webhookHash);
 	const hmac = crypto.createHmac('sha256',Shopify_secret);
 	hmac.update(req.rawBody);
 	var resultHash = hmac.digest('base64');
 	console.log('resultHash is : ' + resultHash);
-	//if(webhookHash!=resultHash)return; 
-	
+	if(webhookHash!=resultHash){
+		console.log("Hash does not match.");
+		return; 
+	}
 	//get_id and quantity
 	console.log(JSON.stringify(req.body).length);
 	console.log(req.rawBody.length);
@@ -446,7 +462,7 @@ function try_till_success(options){
 function findItembyTitle(title,quantity){
 	//console.log(process.env.EBAY_SANDBOX_CLIENT_ID);
 	var resStr = '';
-	
+	var sellerName = 'testuser_shuangzhang'
 	var hostAddr;
 	var securityID;
 	console.log(process.env.EBAY_ENV);
@@ -458,7 +474,7 @@ function findItembyTitle(title,quantity){
 		securityID = process.env.EBAY_PROD_CLIENT_ID;
 		hostAddr = 'svcs.ebay.com';
 	}
-	var sellerConstraint = '&itemFilter.name=Seller&itemFilter.value=testuser_shuangzhang'; //seller name can subject to change
+	var sellerConstraint = '&itemFilter.name=Seller&itemFilter.value='+sellerName; //seller name can subject to change
 	var opParam = 'OPERATION-NAME=findItemsByKeywords&SERVICE-VERSION=1.13.0&RESPONSE-DATA-FORMAT=XML&SECURITY-APPNAME=';
 	var payloadParam = 'REST-PAYLOAD&keywords=' + title.replace(/ /g,'%20') + sellerConstraint + '&paginationInput.entriesPerPage=200';
 	
@@ -510,16 +526,73 @@ function findItembyTitle(title,quantity){
 }
 
 
-/**
- * webhook handler for item deletion from ebay
- * 1. should check if the item has been deleted from shopify already
- * 2. if not, delete it from ebay
- **/
-router.get('/deleteItemCallback/ebay', (req, res, next) => {
+function shopify_getWebhook(res){
+	var shopifyclient = new ShopifyClient('sellmaster3');
+	return shopifyclient.get('admin/webhooks.json','','')
+	.then((result) => {
+		console.log(result);
+        res.status(200).send(result);
+    }).catch((err) => {
+        console.log(err);
+    });
+}
+
+function shopify_setWebhook(res){
+	var shopifyclient = new ShopifyClient('sellmaster3');
+	var dataobj = {
+		"webhook": {
+			"topic": "products\/update",
+			"address": "https:\/\/requestb.in\/1biagkh1\/",
+			"format": "json"
+		}
+	};
+	console.dir(dataobj);
+	return shopifyclient.post('admin/webhooks.json','',dataobj)
+	.then((result) => {
+		console.log(result);
+        res.status(200).send(result);
+    }).catch((err) => {
+        console.log(err);
+    });
+	
+}
+
+function shopify_modWebhook(webhookid,res){
+	var shopifyclient = new ShopifyClient('sellmaster3');
+	var dataobj = {
+		"webhook": {
+			"id": webhookid,
+			"address": "http:\/\/requestb.in\/1biagkh1\/"
+			
+		}
+	};
+	return shopifyclient.put('admin/webhooks/' + webhookid +'.json','',dataobj)
+	.then((result) => {
+		console.log(result);
+        res.status(200).send(result);
+    }).catch((err) => {
+        console.log(err);
+    });
+}
+
+
+router.get('/setwebhook/shopify', (req, res, next) => {
 	//findItembyTitle('00-03 Honda Shadow Ace 750 Vt750 Vt750cd Front Forks Clamp Lower Triple Tree',2);
+	shopify_setWebhook(res);
+	//shopify_getWebhook(res);
 })
 
-
+router.get('/getwebhook/shopify', (req, res, next) => {
+	//findItembyTitle('00-03 Honda Shadow Ace 750 Vt750 Vt750cd Front Forks Clamp Lower Triple Tree',2);
+	//shopify_setWebhook(res);
+	shopify_getWebhook(res);
+})
+router.get('/modwebhook/shopify/:webhookid', (req, res, next) => {
+	//findItembyTitle('00-03 Honda Shadow Ace 750 Vt750 Vt750cd Front Forks Clamp Lower Triple Tree',2);
+	//shopify_setWebhook(res);
+	var webhookid = req.params.webhookid;
+	shopify_modWebhook(webhookid,res);
+})
 
 
 module.exports = router;

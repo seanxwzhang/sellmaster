@@ -1,89 +1,170 @@
-
 <div class="site-wrapper">
-    <div class="site-wrapper-inner">
+  <div class="site-wrapper-inner">
 
-        <div class="cover-container">
-            <div class="masthead clearfix">
-                <div class="inner">
-                    <h3 class="masthead-brand">Sell Master</h3>
-                    <nav>
-                        <ul class="nav masthead-nav">
-                            <li class="active"><a href="http://getbootstrap.com/examples/cover/#">Home</a></li>
-                            <li><a href="http://getbootstrap.topcom/examples/cover/#">Features</a></li>
-                            <li><a href="http://getbootstrap.com/examples/cover/#">Contact</a></li>
-                        </ul>
-                    </nav>
-                </div>
-            </div>
+    <div class="cover-container">
+      <div class="masthead clearfix">
+        <div class="inner">
+          <h3 class="masthead-brand">Sell Master</h3>
+          <nav>
+            <ul class="nav masthead-nav">
+              <li class="active"><a href="#" onclick="navTo(0)">Home</a></li>
+              <li><a href="#" onclick="navTo(1)">Features</a></li>
+              <li><a href="#" onclick="navTo(2)">Contact</a></li>
+            </ul>
+          </nav>
+        </div>
+      </div>
 
-            <div class="inner cover">
+      <div id="carousel-example-generic" class="carousel slide" data-ride="carousel" data-interval="false">
+        <!-- Indicators -->
+        <ol class="carousel-indicators">
+          <li data-target="#carousel-example-generic" data-slide-to="0" class="active"></li>
+          <li data-target="#carousel-example-generic" data-slide-to="1"></li>
+          <li data-target="#carousel-example-generic" data-slide-to="2"></li>
+        </ol>
+
+        <!-- Wrapper for slides -->
+        <div class="carousel-inner" role="listbox">
+          <div class="item active" id="item-0">
+            <img class="first-slide" src="/assets/wallpaper2.png" alt="First slide">
+            <div class="container">
+              <div class="carousel-caption">
                 <h1 class="cover-heading">Sell Master</h1>
-                <p class="lead">Use Sell Master to synchronize your eBay and Shopify and lower your operational cost</p>
+                <p class="lead">Use Sell Master to manage synchronization between your eBay and Shopify and lower your operational cost.</p>
                 <p class="lead">
-                    <div class="row">
-                        {{#if shopifyLogin}}
-                        {{#if eBayLogin}}
-                        <div class="form-group label-floating col-sm-6">
+                  <div class="row">
+                    {{#if shopifyLogin}}
+                    {{#if eBayLogin}}
+                    <div class="form-group label-floating col-sm-6">
+                      {{else}}
+                      <div class="form-group label-floating col-sm-6 col-centered">
+                        {{/if}}
+                        <label for="i5" class="control-label" style="right: 30%">Your Shopify Store</label>
+                        <input type="text" class="form-control" id="i1">
+                        <span class="help-block">Enter <code>mystore</code> as in <span class="text-primary">mystore.myshopify.com</span></span>
+                        <button class="btn btn-raised btn-default oauth-button" id="oauth-button-shopify">
+                          <span>Shopify Login</span>
+                        </button>
+                      </div>
+                      {{/if}}
+
+                      {{#if eBayLogin}}
+                      {{#if shopifyLogin}}
+                      <div class="form-group label-floating col-sm-6">
                         {{else}}
                         <div class="form-group label-floating col-sm-6 col-centered">
-                        {{/if}}
-                            <label for="i5" class="control-label" style="right: 30%">Your Shopify Store</label>
-                            <input type="text" class="form-control" id="i1">
-                            <span class="help-block">Enter <code>mystore</code> as in <span class="text-primary">mystore.myshopify.com</span></span>
-                            <button class="btn btn-raised btn-default oauth-button" id="oauth-button-shopify">
-                                <span>Shopify Login</span>
-                            </button>
+                          {{/if}}
+                          <label for="i5" class="control-label" style="right: 30%">Your eBay Store</label>
+                          <input type="text" class="form-control" id="i2">
+                          <span class="help-block">Enter your ebay username</span>
+                          <button class="btn btn-raised btn-default oauth-button" id="oauth-button-ebay">
+                            <span>eBay Login</span>
+                          </button>
                         </div>
                         {{/if}}
-                        {{#if eBayLogin}}
-                        {{#if shopifyLogin}}
-                        <div class="form-group label-floating col-sm-6">
-                        {{else}}
-                        <div class="form-group label-floating col-sm-6 col-centered">
-                        {{/if}}
-                            <label for="i5" class="control-label" style="right: 30%">Your eBay Store</label>
-                            <input type="text" class="form-control" id="i2">
-                            <span class="help-block">Enter your ebay username</span>
-                            <button class="btn btn-raised btn-default oauth-button" id="oauth-button-ebay">
-                                <span>eBay Login</span>
-                            </button>
-                        </div>
-                        {{/if}}
+
+
                         {{#if authenticated}}
                         <div class="form-group label-floating col-sm-6 col-centered">
-                            <a href="/dashboard" class="btn btn-raised btn-success">
-                                Start Synchronizing
-                            </a>
+                          <a href="/dashboard" class="btn btn-raised btn-success">
+                            Start Synchronizing
+                          </a>
                         </div>
                         {{/if}}
-                    </div>
-
-                </p>
-            </div>
-
-            <div class="mastfoot">
-                <div class="inner">
-                    <p>Copyright 2017 @<a href="">SellMaster Team</a></p>
+                      </div>
+                    </p>
+                  </div>
                 </div>
+              </div>
+              <div class="item" id="item-1">
+                <img class="second-slide" src="/assets/wallpaper2.png" alt="Second slide">
+                <div class="container">
+                  <div class="carousel-caption">
+                    <!-- <h1>Secure</h1>
+                    <p></p> -->
+                    <div class="row">
+                      <div class="col-sm-4 col-md-4">
+                        <div class="thumbnail bg-success">
+                          <span class="glyphicon glyphicon-lock" aria-hidden="true"></span>
+                          <div class="caption">
+                            <h3>Security</h3>
+                            <p>SellMaster does not store any of your credentials, we operate on your behalf using <span class="text-warning">OAuth 2.0</span></p>
+                            <p><a href="https://oauth.net/2/" class="btn btn-default" role="button">Learn more</a></p>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-sm-4 col-md-4">
+                        <div class="thumbnail bg-info">
+                          <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                          <div class="caption">
+                            <h3>Automation</h3>
+                            <p>Only one click, SellMaster does all the heavy lifting for you, no more manual upload and checks.</p>
+                            <p><a href="#" class="btn btn-default" role="button">Learn more</a></p>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-sm-4 col-md-4">
+                        <div class="thumbnail bg-warning">
+                          <span class="glyphicon glyphicon-comment" aria-hidden="true"></span>
+                          <div class="caption">
+                            <h3>Smart Notification</h3>
+                            <p>Built-in notification service will notify you of events happening in your store.</p>
+                            <p><a href="#" class="btn btn-default" role="button">Learn more</a></p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- <p><a class="btn btn-lg btn-primary" href="#" role="button">Learn more</a></p> -->
+                  </div>
+                </div>
+              </div>
+              <div class="item" id="item-2">
+                <img class="third-slide" src="/assets/wallpaper2.png" alt="Third slide">
+                <div class="container">
+                  <div class="carousel-caption">
+                    <h1>Contact and support</h1>
+                    <p>We are in active development, if you have interest in business coperation or interest in parcipate in the development, please contact us at the email below.</p>
+                    <p><a class="btn btn-lg btn-primary" href="mailto:seanxwzhang@gmail.com?Subject=Interest%20in%20SellMaster" role="button">Contact</a></p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-        </div>
-        {{#if topbar}}
-        <div class="container" id="topBar">
-            {{{topbar.text}}}
-        </div>
-        {{/if}}
+            <!-- Controls -->
+            <a class="left carousel-control" href="#carousel-example-generic" role="button" data-slide="prev">
+              <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+              <span class="sr-only">Previous</span>
+            </a>
+            <a class="right carousel-control" href="#carousel-example-generic" role="button" data-slide="next">
+              <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+              <span class="sr-only">Next</span>
+            </a>
+          </div>
 
-    </div>
-    {{#if message}}
-    <p style="display:none" id="message">
+
+
+
+          <div class="mastfoot">
+            <div class="inner">
+              <p>Copyright 2017 @<a href="">SellMaster Team</a></p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      {{#if message}}
+      <p style="display:none" id="message">
         {{message}}
-    </p>
-    {{/if}}
-    {{#if messageStyle}}
-    <p style="display:none" id="messageStyle">
+      </p>
+      {{/if}}
+      {{#if messageStyle}}
+      <p style="display:none" id="messageStyle">
         {{messageStyle}}
-    </p>
-    {{/if}}
-</div>
-<a href="https://github.com/you"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://camo.githubusercontent.com/121cd7cbdc3e4855075ea8b558508b91ac463ac2/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f6c6566745f677265656e5f3030373230302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_left_green_007200.png"></a>
+      </p>
+      {{/if}}
+    </div>
+    <a href="https://github.com/you"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://camo.githubusercontent.com/121cd7cbdc3e4855075ea8b558508b91ac463ac2/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f6c6566745f677265656e5f3030373230302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_left_green_007200.png"></a>

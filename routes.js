@@ -15,60 +15,61 @@ module.exports = function(io) {
 
   // home controller
   router.get('/', (req, res, next) => {
-      if (req.query.from_call_back) {
-          checkSession(req)
-          .then((result) => {
-              var message = `Please login to your `;
-              var messageStyle = "success";
-              if (!result['shopify'] && result['ebay']) {
-                  message += "shopify account";
-              } else if (result['shopify'] && !result['ebay']) {
-                  message += "ebay account";
-              } else if (!result['shopify'] && !result['ebay']){
-                  message += "shopify and ebay account";
-              } else {
-                  message = "You are good to go!";
-              }
-              res.render('home',{
-                  styles: ["css/bootstrap-material-design.min.css", "css/ripples.min.css", "css/home.css"],
-                  js: ["js/material.min.js","js/home.js"],
-                  message: message,
-                  messageStyle: messageStyle,
-                  shopifyLogin: !result.shopify,
-                  eBayLogin: !result.ebay,
-                  authenticated: result.shopify && result.ebay,
-                  hosturl: process.env.HOSTNAME
-              });
-          })
-      } else {
-          checkSession(req)
-          .then((result) => {
-              if (result.ebay || result.shopify) {
-                  res.render('home',{
-                      styles: ["css/bootstrap-material-design.min.css", "css/ripples.min.css", "css/home.css"],
-                      js: ["js/material.min.js","js/home.js"],
-                      message: "Welcome back!",
-                      messageStyle: "success",
-                      shopifyLogin: !result.shopify,
-                      eBayLogin: !result.ebay,
-                      authenticated: result.shopify && result.ebay,
-                      hosturl: process.env.HOSTNAME
-                  });
-              } else {
-                  res.render('home',{
-                      styles: ["css/bootstrap-material-design.min.css", "css/ripples.min.css", "css/home.css"],
-                      js: ["js/material.min.js","js/home.js"],
-                      shopifyLogin: true,
-                      eBayLogin: true,
-                      hosturl: process.env.HOSTNAME
-                  });
-              }
-          })
-
-      }
-
-
+    if (req.query.from_call_back) {
+      checkSession(req)
+      .then((result) => {
+        var message = `Please login to your `;
+        var messageStyle = "success";
+        if (!result['shopify'] && result['ebay']) {
+          message += "shopify account";
+        } else if (result['shopify'] && !result['ebay']) {
+          message += "ebay account";
+        } else if (!result['shopify'] && !result['ebay']){
+          message += "shopify and ebay account";
+        } else {
+          message = "You are good to go!";
+        }
+        res.render('home',{
+          styles: ["css/bootstrap-material-design.min.css", "css/ripples.min.css", "css/home.css"],
+          js: ["js/material.min.js","js/home.js"],
+          message: message,
+          messageStyle: messageStyle,
+          shopifyLogin: !result.shopify,
+          eBayLogin: !result.ebay,
+          authenticated: result.shopify && result.ebay,
+          hosturl: process.env.HOSTNAME
+        });
+      })
+    } else {
+      checkSession(req)
+      .then((result) => {
+        if (result.ebay || result.shopify) {
+          res.render('home',{
+            styles: ["css/bootstrap-material-design.min.css", "css/ripples.min.css", "css/home.css"],
+            js: ["js/material.min.js","js/home.js"],
+            message: "Welcome back!",
+            messageStyle: "success",
+            shopifyLogin: !result.shopify,
+            eBayLogin: !result.ebay,
+            authenticated: result.shopify && result.ebay,
+            hosturl: process.env.HOSTNAME
+          });
+        } else {
+          res.render('home',{
+            styles: ["css/bootstrap-material-design.min.css", "css/ripples.min.css", "css/home.css"],
+            js: ["js/material.min.js","js/home.js"],
+            shopifyLogin: true,
+            eBayLogin: true,
+            hosturl: process.env.HOSTNAME
+          });
+        }
+      })
+    }
   });
+
+  router.get('/feature', (req, res, next) => {
+
+  })
 
   router.use('/auth', require('./controller/auth.js'));
 

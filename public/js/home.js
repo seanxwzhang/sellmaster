@@ -35,4 +35,27 @@ $(document).ready(function () {
             '</div>'
         });
     }
+
 });
+
+var navTo = function(ind) {
+  $('.carousel').carousel(ind);
+  var navs = $('.nav, .masthead-nav').children();
+  navs.each(function(index) {
+    $(this).removeClass('active');
+    if (index == ind) {
+      $(this).addClass('active');
+    }
+  });
+}
+
+$('#carousel-example-generic').on('slide.bs.carousel', function (event) {
+  var id = parseInt(event.relatedTarget.id.split('-')[1]);
+  var navs = $('.nav, .masthead-nav').children();
+  navs.each(function(index) {
+    $(this).removeClass('active');
+    if (index == id) {
+      $(this).addClass('active');
+    }
+  });
+})

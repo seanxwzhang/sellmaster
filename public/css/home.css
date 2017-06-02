@@ -165,18 +165,29 @@ input[type=text] {
     vertical-align: middle;
   }
   /* Handle the widths */
-  .masthead,
-  .mastfoot,
   .cover-container {
-    width: 100%; /* Must be percentage or pixels for horizontal alignment */
+    width: 90%; /* Must be percentage or pixels for horizontal alignment */
+    /*height: 500px;*/
+  }
+  .masthead,
+  .mastfoot {
+    width: 100%;
+    padding-left: 10%;
+    padding-right: 10%;
   }
 }
 
 @media (min-width: 992px) {
   .masthead,
-  .mastfoot,
+  .mastfoot {
+    width: 100%;
+    padding-left: 10%;
+    padding-right: 10%;
+  }
+
   .cover-container {
-    width: 700px;
+    width: 90%;
+    /*height: 500px;*/
   }
 }
 
@@ -191,4 +202,55 @@ input[type=text] {
 .col-centered{
     float: none;
     margin: 0 auto;
+}
+
+.cover-heading {
+  border-top: 20px;
+  border-bottom: 20px;
+}
+
+.p {
+  margin-top: 10px;
+}
+
+.carousel-control.left, .carousel-control.right {
+
+ background-color: rgba(0,0,0,1);
+  background: none !important;
+ filter: progid: none !important;
+ filter:none !important;
+ background-image:none;
+ outline: 0;
+ opacity: 1;
+}
+
+.thumbnail.bg-primary {
+    background: #428bca;
+    border-color: #428bca;
+}
+
+.thumbnail.bg-success {
+    background: #5cb85c;
+    border-color: #5cb85c;
+}
+
+.thumbnail.bg-info {
+    background: #5bc0de;
+    border-color: #5bc0de;
+}
+
+.thumbnail.bg-warning {
+    background: #f0ad4e;
+    border-color: #f0ad4e;
+}
+
+.thumbnail .caption {
+  color: white;
+  padding-top: 0px;
+}
+
+
+
+span.glyphicon {
+    font-size: 2.5em;
 }

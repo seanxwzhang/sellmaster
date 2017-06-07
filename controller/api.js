@@ -126,11 +126,15 @@ module.exports = function(io) {
     }).catch((err) => {
       console.log(err);
     }).then((response) => {
-      req.query.progress.incr(25, `Synchronization complete!`);
+      req.query.progress.incr(25, `Upload complete!`);
       console.log("===================synchronization complete======================");
     })
   })
 
+
+  /**
+   * setup webhooks
+   **/
 
 
   return router;

@@ -253,4 +253,5 @@ input[type=text] {
 
 span.glyphicon {
     font-size: 2.5em;
+    padding-top: 0.5em;
 }

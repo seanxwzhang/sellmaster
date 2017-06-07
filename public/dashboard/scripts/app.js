@@ -260,6 +260,7 @@ angular.module('adfDynamicSample', [
     $scope.NumProcessed = 0;
     $scope.NumUpdated = 0;
     $scope.NumCreated = 0;
+    $scope.autoUpdate = false;
 
     $scope.$on('adfDashboardChanged', function(event, name, model) {
       storeService.set(name, model);
@@ -273,49 +274,18 @@ angular.module('adfDynamicSample', [
         $rootScope.progressPercent = data.percentage;
         notificationService.notify(data.msg);
         console.log(data.msg);
-        if (data.msg == `Synchronization complete!`) {
+        if (data.msg == `Upload complete!`) {
           $rootScope.progressbar = false;
           $scope.showSpinner = false;
         }
       }
     })
-    // socket.on('startCounting', function (data) {
-    //   $scope.progress = "counting number of products in eBay";
-    // });
-    // socket.on('startFetching', function (data) {
-    //   $scope.NumProducts = data;
-    //   $scope.progress = "start fetching products from eBay";
-    // });
-    // socket.on('fetched', function (data) {
-    //   $scope.NumFetched += data;
-    //   $scope.progress = `fetched ${$scope.NumFetched}/${$scope.NumProducts} products`;
-    // });
-    // socket.on('doneFetching', function (data) {
-    //   $scope.progress = `fetching finished, obtained ${$scope.NumFetched} products`;
-    // });
-    // socket.on('startProcessing', function (data) {
-    //   $scope.NumProducts = data;
-    //   $scope.progress = `start formatting and uploading ${$scope.NumProducts} products information`;
-    // });
-    // socket.on('processed', function (data) {
-    //   $scope.NumProcessed += data.num;
-    //   if (data.type == 'POST') {
-    //     $scope.NumCreated += data.num;
-    //   } else {
-    //     $scope.NumUpdated += data.num;
-    //   }
-    //   $scope.progress = `processed ${$scope.NumProcessed}/${$scope.NumProducts} products`;
-    // });
-    // socket.on('doneProcess', function (data) {
-    //   $scope.progress = `Finished synchronization, created ${$scope.NumCreated} products, updated ${$scope.NumUpdated} products`;
-    // });
-
 
     $scope.showSpinner = false;
 
     $scope.buttons = [{
-      label: 'synchronize products',
-      icon: 'ion-android-sync',
+      label: 'upload products to shopify',
+      icon: 'ion-ios-cloud-upload',
       click: function() {
           if (!$rootScope.progressbar) {
             $scope.showSpinner = true;
@@ -326,7 +296,7 @@ angular.module('adfDynamicSample', [
             $scope.NumCreated = 0;
             $rootScope.progressbar = true;
             $rootScope.progressPercent = 0;
-            notificationService.notify('Synchronization starts!');
+            notificationService.notify('Upload starts!');
             axios.get('/api/startSynchonize')
             .then(function (response) {
               console.log(response);
@@ -335,8 +305,20 @@ angular.module('adfDynamicSample', [
               console.log(error);
             });
           } else {
-              notificationService.notify('Synchronizaion ongoing, it could take up to 3 hours for a full synchronization for a store with 20,000+ products')
+              notificationService.notify('Uploading ongoing, it could take up to 3 hours for a full synchronization for a store with 20,000+ products')
           }
+      }
+    }, {
+      label: 'auto-update',
+      icon: 'ion-android-sync',
+      click: function() {
+        if (!$scope.autoUpdate) {
+          notificationService.notify("Auto update turned on, any product changes will be recorded and synchronized");
+          $scope.autoUpdate = true;
+        } else {
+          notificationService.notify("Auto update turned off")
+          $scope.autoUpdate = false;
+        }
       }
     }];
 

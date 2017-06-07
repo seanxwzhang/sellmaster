@@ -71,7 +71,6 @@ module.exports = function(io) {
       default:
       return {};
     }
-
   }
 
   var getAlleBayProducts = function(req) {

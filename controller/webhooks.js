@@ -13,7 +13,7 @@ const findCorrespondingID = require('../models/utility.js').findCorrespondingID;
 
 
 //READ THIS
-//Need to take care of the hard coded user name for each Ebayclient object and Shopifyclient and also the sellerName(ebay store name) variable in findItembyTitle function 
+//Need to take care of the hard coded user name for each Ebayclient object and Shopifyclient and also the sellerName(ebay store name) variable in findItembyTitle function
 
 
 
@@ -31,7 +31,7 @@ const findCorrespondingID = require('../models/utility.js').findCorrespondingID;
 }) */
 
 function ebay_changeQuantity(itemid,quantity,timetotry,res){
-	//var res; 
+	//var res;
 	if(timetotry==0)return;
 	var xmlbdy = {
 		'ReviseItemRequest':{
@@ -44,12 +44,12 @@ function ebay_changeQuantity(itemid,quantity,timetotry,res){
 			}
 		}
 	};
-	
+
 	var xml = builder.create(xmlbdy,{encoding: 'utf-8'});
 	var str = xml.end({pretty:true});
 	console.log(str);
 	var ebayclient = new eBayClient('testuser_shuangzhang','SOAP');
-	
+
 	return ebayclient.post('ReviseItem',str)
 	.then((result) => {
         //console.log(result);
@@ -63,14 +63,14 @@ function ebay_changeQuantity(itemid,quantity,timetotry,res){
 				else ebay_changeQuantity(itemid,quantity,timetotry-1);
 			}
 			//res=resdata.ReviseItemResponse.Ack[0];
-			
+
 		});
-        
+
     }).catch((err) => {
         console.log(err);
-    }); 
+    });
 	//return res;
-	
+
 }
 
 function shopify_changeQuantity(itemid,quantity,res){
@@ -81,7 +81,7 @@ function shopify_changeQuantity(itemid,quantity,res){
 		var my_id = json_obj.product.variants[0].id;
 		var new_product =
 		{
-  			"variant": 
+  			"variant":
   				{
     			"id": my_id,
     			"inventory_management": "shopify",
@@ -117,7 +117,7 @@ function ebay_getItem(itemid,res){
 	var ebayclient = new eBayClient('testuser_shuangzhang','SOAP');
 	return ebayclient.post('GetItem',str)
 	.then((result) => {
-        
+
 		parser.parseString(result,function(err,resdata){
 			console.log(util.inspect(resdata,false,null));
 			if(resdata.GetItemResponse.Ack[0]=="Success"||resdata.GetItemResponse.Ack[0]=="Warning"){console.log("Item retrieve succeeded");
@@ -126,13 +126,13 @@ function ebay_getItem(itemid,res){
 				//can do something with the quantity here call to revise the quantity on shopify for example
 			}
 			else{res.status(503).send("Item with id " +itemid + " retrieve failed.");}
-			
-			
+
+
 		});
-        
+
     }).catch((err) => {
         console.log(err);
-    }); 
+    });
 }
 
 function shopify_getItem(itemid,res){
@@ -163,7 +163,7 @@ function ebay_endItem(itemid,timetotry,res){
 	var ebayclient = new eBayClient('testuser_shuangzhang','SOAP');
 	return ebayclient.post('EndItem',str)
 	.then((result) => {
-        
+
 		parser.parseString(result,function(err,resdata){
 			console.log(util.inspect(resdata,false,null));
 			if(resdata.EndItemResponse.Ack[0]=="Success"||resdata.EndItemResponse.Ack[0]=="Warning"){console.log("Item retrieve succeeded");
@@ -175,14 +175,14 @@ function ebay_endItem(itemid,timetotry,res){
 				if(res){res.status(503).send("Item with id " +itemid + " failed to end.");}
 				else ebay_endItem(itemid,timetotry-1);
 			}
-			
-			
+
+
 		});
-        
+
     }).catch((err) => {
         console.log(err);
     });
-	
+
 }
 
 function shopify_endItem(itemid,res){
@@ -225,7 +225,7 @@ router.get('/testGetItemQuantity/ebay/:itemid',(req,res,err) =>{
 router.get('/testReviseItemQuantity/ebay/:itemid/:newquantity',(req,res,err) =>{
 	var itemid = req.params.itemid;
 	var newquantity = req.params.newquantity;
-	
+
 	ebay_changeQuantity(itemid,newquantity,res);
 /* 	.then((result)=>{
 		console.log(result);
@@ -233,22 +233,22 @@ router.get('/testReviseItemQuantity/ebay/:itemid/:newquantity',(req,res,err) =>{
 				res.status(200).send("Item revision succeeded.");
 		}
 		else{
-				res.status(200).send("Item revision failed.");		
+				res.status(200).send("Item revision failed.");
 		}
-		
+
 	}); */
-	
+
 });
 
 //get active selling item only
 router.get('/testActiveItem/ebay',(req,res,err) => {
 	var ebayclient = new eBayClient('testuser_shuangzhang','SOAP');
-	
+
 	var xmlbdy = {
 		'GetMyeBaySellingRequest':{
 			'@xmlns':  'urn:ebay:apis:eBLBaseComponents',
 			'ErrorLanguage' : 'en_US',
-			'WarningLevel' : 'High',		
+			'WarningLevel' : 'High',
 			'ActiveList' :{
 				'Pagination' :{
 					'EntriesPerPage' : 200,
@@ -256,39 +256,39 @@ router.get('/testActiveItem/ebay',(req,res,err) => {
 				},
 				'IncludeNotes' : true
 			}
-			
+
 		}
 	};
 	var xml = builder.create(xmlbdy,{encoding: 'utf-8'});
-	
+
 	var str = xml.end({pretty:true,indent: ' ',newline : '\n'});
 
 	console.log(str);
-	
+
     ebayclient.post('GetMyeBaySelling',str)
 	.then((result) => {
-        
+
 		parser.parseString(result,function(err,resdata){
 			console.log(util.inspect(resdata,false,null));
 			res.status(200).send(JSON.stringify(resdata,null,2));
-			
+
 		});
-        
+
     }).catch((err) => {
         console.log(err);
-    }); 
-	
+    });
+
 });
 
 
 router.get('/testInventoryItem/ebay',(req,res,err) => {
 	var ebayclient = new eBayClient('testuser_shuangzhang','SOAP');
-	
+
 var test = {
 	'GetSellerListRequest':{
 		'@xmlns':  'urn:ebay:apis:eBLBaseComponents',
 		'ErrorLanguage' : 'en_US',
-		'WarningLevel' : 'High',		
+		'WarningLevel' : 'High',
 		'DetailLevel' : 'ReturnAll',
 		'StartTimeFrom' : '2017-05-01T21:59:59.005Z',
 		'StartTimeTo' : '2017-05-20T21:59:59.005Z',
@@ -297,13 +297,13 @@ var test = {
 		'Pagination' :{
 			'EntriesPerPage' : 200
 		}
-		
+
 	}
 };
 	var xml = builder.create(test,{encoding: 'utf-8'});
 	//console.log(JSON.stringify(xml.end({pretty:true,indent: ' ',newline : '\n'})));
 	var str = xml.end({pretty:true,indent: ' ',newline : '\n'});
-	//str = str.substring(1,str.length-1);	
+	//str = str.substring(1,str.length-1);
 	//str.replace(/\\"/g, '\"');
 	console.log(str);
 	//ebayclient.get('sell/inventory/v1/inventory_item')
@@ -315,11 +315,11 @@ var test = {
 			res.status(200).send(JSON.stringify(resdata,null,2));
 			console.log(test);
 		});
-        
+
     }).catch((err) => {
         console.log(err);
-    }); 
-	
+    });
+
 });
 
 //skeleton respond to ebay webhook, respond with 200 and empty message
@@ -329,7 +329,7 @@ router.post('/testeBayWebhook',(req,res,err) =>{
 	console.log(util.inspect(req.body, false, null));
 	//console.log(req.body.GetSellerListResponse.Ack[0]);
 	//TODO security check
-	
+
 	//get id and quantity
 	var response = req.body['soapenv:Envelope']['soapenv:Body'][0].GetItemResponse[0];
 	//console.log(util.inspect(response,false,null));
@@ -340,19 +340,19 @@ router.post('/testeBayWebhook',(req,res,err) =>{
 		var eBay_quantity = response.Item[0].Quantity[0];
 		console.log("eb id: "+eBay_id);
 		console.log("eb quan: "+eBay_quantity);
-		
+
 		//update Shopify by first finding corresponding id and then do the update
-		
+
 	}
 	else if (notificationName == "ItemListed"){
 		//get all necessary attribute
-		
+
 		//update database for id mapping by creating a new entry
-		
+
 		//Use Shopify API to create a listing
-		
+
 	}
-	
+
 });
 
 //skeleton respond to shopify webhook, respond with 200 and empty message
@@ -365,7 +365,7 @@ router.post('/testShopifyWebhook',(req,res,err) =>{
 	console.log('Shopify_secret is '+Shopify_secret);
 	var webhookHash;
 	if(typeof req.get('X-Shopify-Hmac-Sha256') != 'undefined'){
-		webhookHash = req.get('X-Shopify-Hmac-Sha256');		
+		webhookHash = req.get('X-Shopify-Hmac-Sha256');
 	}
 	else if (typeof req.get('HTTP_X_SHOPIFY_HMAC_SHA256') != 'undefined'){
 		webhookHash = req.get('HTTP_X_SHOPIFY_HMAC_SHA256');
@@ -380,7 +380,7 @@ router.post('/testShopifyWebhook',(req,res,err) =>{
 	console.log('resultHash is : ' + resultHash);
 	if(webhookHash!=resultHash){
 		console.log("Hash does not match.");
-		return; 
+		return;
 	}
 	//get_id and quantity
 	console.log(JSON.stringify(req.body).length);
@@ -388,12 +388,12 @@ router.post('/testShopifyWebhook',(req,res,err) =>{
 	/* var Shopify_id = [];
 	var Shopify_quantity = [];
 	var Shopify_title = [];  */
-	 
+
 	for(var i = 0; i < req.body.variants.length;i++){
 		/* Shopify_id.push(req.body.variants[i].id);
 		console.log("Sh id: "+ req.body.variants[i].id);
 		Shopify_quantity.push(req.body.variants[i].inventory_quantity);
-		console.log("Sh quan: "+ req.body.variants[i].inventory_quantity);		
+		console.log("Sh quan: "+ req.body.variants[i].inventory_quantity);
 		//Shopify_title.push((req.body.variants[i].title == "Default Title" ? req.body.title : req.body.variants[i].title));
 		Shopify_title.push(req.body.title);
 		console.log("Sh title: " + Shopify_title[i]); */
@@ -402,7 +402,7 @@ router.post('/testShopifyWebhook',(req,res,err) =>{
 		var Shopify_title = (req.body.variants[i].title == "Default Title" ? req.body.title : req.body.variants[i].title);
 	//for(var i = 0; i< Shopify_id.length; i++){
 		//retreive ebay corresponding id
-		
+
 		findCorrespondingID("ebay", "shopify", Shopify_id[i])
 		.then((res) => {
 			console.log(res == null);
@@ -411,40 +411,40 @@ router.post('/testShopifyWebhook',(req,res,err) =>{
 				//update quantity
 				var options = {};
 				if(Shopify_quantity==0){
-					//Call enditem function	
+					//Call enditem function
 					/* options = {
 						host: ( process.env.EBAY_ENV == "sandbox" ? "http://localhost:8080" : "http://testsites.sellmaster.in" ),
 						path: '/webhook/testEndItemQuantity/ebay/' + ebay_id
 					}; */
-					ebay_endItem(ebay_id,5);									
+					ebay_endItem(ebay_id,5);
 				}
 				else{
-					//Call reviseitem quantity function	
+					//Call reviseitem quantity function
 					/* options = {
 						host: ( process.env.EBAY_ENV == "sandbox" ? "http://localhost:8080" : "http://testsites.sellmaster.in" ),
 						path: '/webhook/testReviseItemQuantity/ebay/' + ebay_id + '/' + Shopify_quantity[i]
 					}; */
 					ebay_changeQuantity(ebay_id,Shopify_quantity,5);
 				}
-				
+
 				//try_till_success(options);
-				
+
 			}
 			else{
 				console.log(Shopify_id);
 				console.log(Shopify_title);
 				console.log(Shopify_quantity);
-				findItembyTitle(Shopify_title,Shopify_quantity);				
+				findItembyTitle(Shopify_title,Shopify_quantity);
 			}
-			
-			
-			
+
+
+
 			});
-		
+
 	}
-		
-	//} 
-	
+
+	//}
+
 });
 
 function try_till_success(options){
@@ -453,9 +453,9 @@ function try_till_success(options){
 				console.log(statusCode);
 				if(res.statusCode != 200){
 					try_till_success(options);
-				}					
+				}
 			});
-	req.end();		
+	req.end();
 }
 
 
@@ -477,17 +477,17 @@ function findItembyTitle(title,quantity){
 	var sellerConstraint = '&itemFilter.name=Seller&itemFilter.value='+sellerName; //seller name can subject to change
 	var opParam = 'OPERATION-NAME=findItemsByKeywords&SERVICE-VERSION=1.13.0&RESPONSE-DATA-FORMAT=XML&SECURITY-APPNAME=';
 	var payloadParam = 'REST-PAYLOAD&keywords=' + title.replace(/ /g,'%20') + sellerConstraint + '&paginationInput.entriesPerPage=200';
-	
-	
+
+
 	var options = {
 		host: hostAddr,
-		path: '/services/search/FindingService/v1?' + opParam + securityID + '&' + payloadParam		
+		path: '/services/search/FindingService/v1?' + opParam + securityID + '&' + payloadParam
 	};
 	var req = http.request(options, function(response){
 		response.on('data', function(chunk){
 			resStr += chunk;
 		});
-		
+
 		response.on('end',function(){
 			parser.parseString(resStr,function(err,resdata){
 				console.log(util.inspect(resdata,false,null));
@@ -508,21 +508,21 @@ function findItembyTitle(title,quantity){
 						/* options_new = {
 							host: ( process.env.EBAY_ENV == "sandbox" ? "http://localhost:8080" : "http://testsites.sellmaster.in" ),
 							path: '/webhook/testReviseItemQuantity/ebay/' + itemID + '/' + quantity
-						};	 */				
+						};	 */
 						ebay_changeQuantity(itemID,quantity,5);
 					}
 					//console.dir(options_new);
-					//try_till_success(options_new); 
+					//try_till_success(options_new);
 				}
 				else{
 					findItembyTitle(title,quantity);
 				}
 			});
 		});
-		
+
 	}).end();
-	
-	
+
+
 }
 
 
@@ -554,7 +554,7 @@ function shopify_setWebhook(res){
     }).catch((err) => {
         console.log(err);
     });
-	
+
 }
 
 function shopify_modWebhook(webhookid,res){
@@ -563,7 +563,7 @@ function shopify_modWebhook(webhookid,res){
 		"webhook": {
 			"id": webhookid,
 			"address": "http:\/\/requestb.in\/1biagkh1\/"
-			
+
 		}
 	};
 	return shopifyclient.put('admin/webhooks/' + webhookid +'.json','',dataobj)

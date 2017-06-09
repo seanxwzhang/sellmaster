@@ -3,9 +3,10 @@ const _ = require('lodash');
 const Promise = require('bluebird');
 const Cron = require('cron').CronJob;
 const parserp = require('xml2js-es6-promise');
+const builder = require('xmlbuilder');
 const {eBayClient, ShopifyClient} = require('../controller/client');
 const {winston, redisClient} = require("../globals");
-const {checkSession} = require('../controller/utility');
+const {checkSession, getRoomName} = require('../controller/utility');
 const {Progress} = require('../controller/socket');
 const {getKeys, findCorrespondingID} = require('./utility');
 const TRANS_TYPE = {
@@ -19,6 +20,7 @@ const defaultTTT = 4; // time to try ebay api
 
 module.exports = function(io) {
   const {getAlleBayProducts, getShopifyProducts, getActiveEbaySellings, getAllActiveEbaySellings, postShopifyProduct, requestAll, requestAllShopifyProducts, getDifferencebyTitle, pushAlleBayProductsToShopify} = require("./products.js")(io);
+  const {Progress} = require('../controller/socket')(io);
 
   class Manager {
     constructor() {
@@ -133,7 +135,7 @@ module.exports = function(io) {
       })
     }
 
-    ebay_modItem(itemID, ttt, config) {
+    static ebay_modItem(ebayID, itemID, ttt, config) {
       if (ttt == 0) {
         console.error(`ebay_modItem:${config.type} No more time to try on item ${itemID}`);
         return new Promise((resolve, reject) => {
@@ -153,8 +155,8 @@ module.exports = function(io) {
       			}
       		};
           break;
-        case 'changeQuantity':
-          xmlbdy = {
+        case 'ReviseItem':
+          xmlbody = {
             'ReviseItemRequest':{
               '@xmlns':  "urn:ebay:apis:eBLBaseComponents",
               'ErrorLanguage' : 'en_US',
@@ -167,18 +169,19 @@ module.exports = function(io) {
           };
           break;
       }
-      let xml = builder.create(xmlbdy,{encoding: 'utf-8'});
+      let xml = builder.create(xmlbody,{encoding: 'utf-8'});
   		let str = xml.end({pretty:true});
-      let client = new eBayClient(this.ebayID,'SOAP');
-      return client.post('EndItem', str)
+      let client = new eBayClient(ebayID,'SOAP');
+      return client.post(config.type, str)
       .then((result) => {
         return parserp(result)
       }).then((resdata) => {
-        if(resdata.EndItemResponse.Ack[0]=="Success" || resdata.EndItemResponse.Ack[0]=="Warning"){
+        console.log('resdata', JSON.stringify(resdata));
+        if(resdata[config.type + 'Response'].Ack[0]=="Success" || resdata[config.type + 'Response'].Ack[0]=="Warning"){
           return `eBay item ${itemID} ${config.type} success`;
         } else {
           console.log(`eBay item ${itemID} ${config.type} failed, retrying...`);
-          return ebay_endItem(itemID, ttt - 1, config);
+          return WebHook.ebay_modItem(ebayID, itemID, ttt - 1, config);
         }
       })
     }
@@ -187,29 +190,51 @@ module.exports = function(io) {
     static callback(req, res, next) {
       try {
         if (req.get('x-kotn-webhook-verified') == '200') {
-          console.log('callback received: ', req.body);
+          res.status(200).send('ok');
+          let roomName = getRoomName({shopifyId: req.params.shopifyID, ebayId: req.params.ebayID});
+          console.log(`roomName`, roomName);
+          let progress = new Progress(roomName);
+          console.log('webhook received');
+          progress.incr(25, 'webhookEvent: received');
+          console.log('1');
           let shopifyclient = new ShopifyClient(req.params.shopifyID);
           let ebayclient = new eBayClient(req.params.ebayID);
           let ShopifyProductID = req.body.id.toString();
-          let config;
+          let config = {};
+          console.log('2');
           let ebayProductIDpromise = new Promise((resolve, reject) => {
-            if (req.get('X-Shopify-Topic') == 'product/delete') {
+            console.log('3.6', req.get('X-Shopify-Topic'))
+            if (req.get('X-Shopify-Topic') == 'products/delete') {
+              console.log('3');
               config.type = 'endItem';
-              return findCorrespondingID('shopify', req.params.shopifyID, 'ebay', req.params.ebayID, ShopifyProductID);
-            } else if (req.get('X-Shopify-Topic') == 'product/update') {
-              config.type = 'changeQuantity';
+              progress.incr(25, `webhookEvent: deleting product ${ShopifyProductID}`);
+              return findCorrespondingID('shopify', req.params.shopifyID, 'ebay', req.params.ebayID, ShopifyProductID).then((id) => {
+                console.log('5');
+                resolve(id);
+              });
+            } else if (req.get('X-Shopify-Topic') == 'products/update') {
+              console.log('4');
+              config.type = 'ReviseItem';
               if (typeof req.body.variants[0].inventory_quantity != 'number') {
                 throw "wrong data type for inventory_quantity"
               }
               config.quantity = req.body.variants[0].inventory_quantity;
-              return req.body.tag;
+              progress.incr(25, `webhookEvent: updating product ${ShopifyProductID}`);
+              // console.log('body is', req.body);
+              console.log('tag is ', req.body.tags);
+              resolve(req.body.tags);
             }
           })
+          console.log('3.5')
           ebayProductIDpromise.then((ebayProductID) => {
-            return this.ebay_modItem(itemID, defaultTTT, config);
+            return WebHook.ebay_modItem(req.params.ebayID, ebayProductID, defaultTTT, config);
             // return 'ok';
+          }).then(() => {
+            console.log('7');
+            progress.incr(50, `webhookEvent: webhook process completed`);
           })
         } else {
+          res.status(400).send('unverified');
           console.error('webhook not verified\nrawBody:', req.rawBody, '\nx-shopify-hmac-sha256:', req.get('x-shopify-hmac-sha256'));
         }
       } catch(err) {

@@ -328,7 +328,7 @@ angular.module('adfDynamicSample', [
     socket.on('progress', function(data) {
       if (!data.noshow) {
         $rootScope.progressPercent = data.percentage;
-        notificationService.notify(data.msg);
+        notificationService.notify(data.msg, data.msg.includes('webhookEvent') ? 'primary':'success');
         console.log(data.msg);
         if (data.msg == `Upload complete!`) {
           $rootScope.progressbar = false;

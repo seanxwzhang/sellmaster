@@ -177,7 +177,13 @@ var getRoomName = function(ids) {
   return `room-${ids.ebayId}-${ids.shopifyId}`;
 }
 
-module.exports = {getStoreName, getScope, getCallbackUrl, getNonceKey, getTokenKey, getTokenBySession, checkSession, setTokenIdBySession, getIdBySession, removeTokenIdBySession, checkAuthError, getStores, getRoomName};
+var saveRelation = function(shopifyID, ebayID) {
+  let index = 'shopify-ebay';
+  return redisClient.zaddAsync(index, 0, `${shopifyID}-${ebayID}`);
+}
 
-module.exports.test = 1;
-// console.log(module.exports);
+var getEbayFromShopify = function(shopifyID) {
+  return redisClient.zrangebylexAsync('shopify-ebay', `[${shopifyID}-`, "+");
+}
+
+module.exports = {getStoreName, getScope, getCallbackUrl, getNonceKey, getTokenKey, getTokenBySession, checkSession, setTokenIdBySession, getIdBySession, removeTokenIdBySession, checkAuthError, getStores, getRoomName, saveRelation, getEbayFromShopify};

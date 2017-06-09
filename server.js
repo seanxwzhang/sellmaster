@@ -15,6 +15,7 @@ const {winston, redisClient} = require("./globals.js");
 const favicon = require('serve-favicon');
 const compression = require('compression');
 const session = require('express-session');
+const crypto = require('crypto');
 const RedisStore = require('connect-redis')(session);
 require('body-parser-xml')(bodyParser);
 
@@ -55,17 +56,17 @@ app.use(favicon(__dirname + '/public/favicon.ico'));
 // compression
 app.use(compression());
 // add body parser middle ware
-app.use(function(req, res, next) {
-  req.rawBody = '';
-  //req.setEncoding('utf8');
+app.use(bodyParser.json({verify: function(req, res, buf, encoding) {
+    var shopHMAC = req.get('x-shopify-hmac-sha256');
+    if(!shopHMAC) return;
+    if(req.get('x-kotn-webhook-verified')) throw "Unexpected webhook verified header";
 
-  req.on('data', function(chunk) {
-    req.rawBody += chunk;
-  });
-
-  next();
-});
-app.use(bodyParser.json());
+    var sharedSecret = process.env.APP_SECRET;
+    var digest = crypto.createHmac('SHA256', sharedSecret).update(buf).digest('base64');
+    if(digest == req.get('x-shopify-hmac-sha256')){
+      req.headers['x-kotn-webhook-verified']= '200';
+    }
+ }}));
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(bodyParser.xml({limit: '1MB'}));
 // set view engine

@@ -67,10 +67,6 @@ module.exports = function(io) {
     }
   });
 
-  router.get('/feature', (req, res, next) => {
-
-  })
-
   router.use('/auth', require('./controller/auth.js'));
 
   router.get('/v1/store', function(req, res, next){
@@ -127,13 +123,7 @@ module.exports = function(io) {
 
   router.use('/api', require('./controller/api.js')(io));
 
-  router.use('/webhook', require('./controller/webhooks.js'));
-
-  router.get('/testwebhook', (req, res, next) => {console.log("got GET request", req); res.status(200).send('OK');});
-
-  router.put('/testwebhook', (req, res, next) => {console.log("got PUT request", req); res.status(200).send('OK');});
-
-  router.post('/testwebhook', (req, res, next) => {console.log("got POST request", req); res.status(200).send('OK');});
+  router.use('/webhook', require('./controller/webhooks.js')(io));
 
   router.get('/.well-known/acme-challenge/g7PsNOh399BvgojzsXaU7GSVKNFZLy2Aw5-Mog9vZfo', (req, res, next) => {
     res.status(200).send('g7PsNOh399BvgojzsXaU7GSVKNFZLy2Aw5-Mog9vZfo.aG_WKQxfcOcFeU1OhVj_1uyPFASnclI63p5z50hIOS4');

@@ -18,10 +18,10 @@ module.exports = function(io) {
       this.roomName = roomName;
     }
 
-    incr(num, msg) {
+    incr(num, msg, nope) {
       this.percentage = Math.min(this.percentage + num, 100);
       this.msg = msg;
-      io.sockets.in(this.roomName).emit('progress', {percentage: this.percentage, msg: this.msg, noshow: this.msg == undefined});
+      io.sockets.in(this.roomName).emit('progress', {percentage: this.percentage, msg: this.msg, noshow: nope || this.msg == undefined});
     }
   }
 

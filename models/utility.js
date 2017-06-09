@@ -1,5 +1,5 @@
 "use strict";
-
+const _ = require('lodash');
 const {winston, redisClient} = require("../globals.js");
 module.exports.getProductName = (channel, storeid, itemID) => {
   return `products:${channel}:${storeid}:${itemID}`;
@@ -47,6 +47,34 @@ module.exports.findCorrespondingID = (baseChannel, basestore, targetChannel, tar
     })
 }
 
-
+module.exports.getKeys = function(pattern, limit) {
+  return new Promise((resolve, reject) => {
+    let cursor = '0';
+    let results = new Set();
+    let count = limit || 10000;
+    let wrapper = () => {
+      return redisClient.scanAsync(cursor, 'MATCH', pattern, 'COUNT', count.toString())
+        .then((reply) => {
+          cursor = reply[0];
+          let keys = reply[1];
+          keys.forEach(function(key,i){
+              results.add(key);
+          });
+          if (cursor == '0' || limit) {
+            console.log(`Got ${results.size} keys`);
+            resolve(Array.from(results));
+          } else {
+            return wrapper();
+          }
+        }).catch((err) => {
+          console.log("Error happend during acquiring keys: ", err);
+          reject(err);
+        })
+    }
+    wrapper();
+  }).then((keys) => {
+    return _.flattenDeep(keys);
+  })
+}
 // exports.findCorrespondingID("ebay", "shopify", "123")
 // .then((res) => {console.log(res == null)});

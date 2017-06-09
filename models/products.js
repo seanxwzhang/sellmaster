@@ -112,7 +112,7 @@ module.exports = function(io) {
 
   /**
    * @return two lists, one contains title and id that only exists in ebay,
-   * another, contains title and id that only exists in shopify
+   * another contains title and id that only exists in shopify
    **/
   var getDifferencebyTitle = function(req) {
     return Promise.join(getIdBySession("ebay", req.session.id), getIdBySession("shopify", req.session.id), (ebayid, shopifyid) => {
@@ -329,7 +329,7 @@ module.exports = function(io) {
           }).then((response) => {
             // console.log(JSON.stringify(response,undefined, 4));
             if (response.GetMyeBaySellingResponse.Ack[0] == "Success") {
-              if (req.query.progress) req.query.progress.incr(incrementalPercentage, `Got ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`);
+              if (req.query.progress) req.query.progress.incr(incrementalPercentage, `Got ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`, true);
               console.log(`Got ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`);
               if (! response.GetMyeBaySellingResponse.ActiveList) {
                 throw new AppError("No activelist in response for " + `Getting ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`, "operation");
@@ -342,7 +342,7 @@ module.exports = function(io) {
               })
             } else if (response.GetMyeBaySellingResponse.Ack[0] == "Warning") {
               console.log("ebay warning!")
-              if (req.query.progress) req.query.progress.incr(incrementalPercentage, `Got ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`);
+              if (req.query.progress) req.query.progress.incr(incrementalPercentage, `Got ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`, true);
               console.log(`Got ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`);
               if (! response.GetMyeBaySellingResponse.ActiveList) {
                 throw new AppError("No activelist in response for " + `Getting ${index * epp} to ${Math.min((index+1) * epp, number)} item ids`, "operation");
@@ -402,7 +402,7 @@ module.exports = function(io) {
             process.exit(1);
           }
         }).then((response) => {
-          if (req.query.progress) req.query.progress.incr(incrementalPercentage, `Obtained ${index * chunkSize}th to ${Math.min((index + 1) * chunkSize, ids.length)}th items`);
+          if (req.query.progress) req.query.progress.incr(incrementalPercentage, `Obtained ${index * chunkSize}th to ${Math.min((index + 1) * chunkSize, ids.length)}th items`, true);
           console.log(`Obtained ${index * chunkSize}th to ${Math.min((index + 1) * chunkSize, ids.length)}th items`);
           return parserp(response);
         }).catch((err) => {

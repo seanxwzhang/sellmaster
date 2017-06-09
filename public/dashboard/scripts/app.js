@@ -29,7 +29,7 @@ angular.module('adfDynamicSample', [
     'adf.widget.clock', 'adf.widget.github', 'adf.widget.iframe',
     'adf.widget.linklist', 'adf.widget.markdown', 'adf.widget.news',
     'adf.widget.randommsg', 'adf.widget.version', 'adf.widget.weather','adf.widget.clock',
-    'adf.widget.table', 'ng-mfb'
+    'adf.widget.table', 'ng-mfb', 'ngLodash'
   ])
   .config(function($routeProvider){
     $routeProvider
@@ -46,12 +46,14 @@ angular.module('adfDynamicSample', [
                 console.log("assign me a room", ids);
                 socket.emit("assign me a room", ids);
                 // replace hardcode url with true iframe url
-                console.log(JSON.stringify(values[0]));
                 var storeStr = JSON.stringify(values[0]).replace(/https:\/\/\w+.\w+.com/g, `https://${ids.shopifyId}.myshopify.com`);
                 console.log(ids.shopifyId);
                 var store = JSON.parse(storeStr);
                 return store;
               })
+          },
+          autoUpdateStatus: function(autoUpdateService) {
+            return autoUpdateService.getStatus();
           }
         }
       })
@@ -138,16 +140,42 @@ angular.module('adfDynamicSample', [
             deferred.reject();
           });
         return deferred.promise;
-
-        // return axios.get('/api/mystores')
-        //   .then(function (response) {
-        //     // console.log(response);
-        //     return response;
-        //   })
-        //   .catch(function (error) {
-        //     console.log(error);
-        //     throw error;
-        //   });
+      }
+    }
+  })
+  .service('autoUpdateService', function($http, $q) {
+    return {
+      getStatus: function() {
+        var deferred = $q.defer();
+        $http.get('/api/autoUpdateStatus')
+          .success(function(data){
+            deferred.resolve(data)
+          })
+        return deferred.promise;
+      },
+      halfAutoUpdate: function() {
+        var deferred = $q.defer();
+        $http.get('/api/startAutoUpdate?whkevents=products/update&crjtypes=sync')
+          .success(function(data){
+            deferred.resolve(data)
+          })
+        return deferred.promise;
+      },
+      fullAutoUpdate: function() {
+        var deferred = $q.defer();
+        $http.get('/api/startAutoUpdate?whkevents=products/update,products/delete&crjtypes=sync%26delete')
+          .success(function(data){
+            deferred.resolve(data)
+          })
+        return deferred.promise;
+      },
+      cancel: function() {
+        var deferred = $q.defer();
+        $http.get('/api/cancelAutoUpdate')
+          .success(function(data){
+            deferred.resolve(data)
+          })
+        return deferred.promise;
       }
     }
   })
@@ -244,7 +272,17 @@ angular.module('adfDynamicSample', [
       });
     });
   })
-  .controller('dashboardCtrl', function($location, $rootScope, $scope, $routeParams, storeService, data, socket, notificationService){
+  .factory('trans_type', function() {
+    return {
+      'shopify_webhook_product_update': 'products/update',
+      'shopify_webhook_product_delete': 'products/delete',
+      'ebay_cronjob_sync_delete': 'sync&delete',
+      'ebay_cronjob_sync':'sync'
+    };
+  })
+  .controller('dashboardCtrl', function($location, $rootScope, $scope, $routeParams, storeService, data, socket, notificationService, autoUpdateStatus, trans_type, lodash, autoUpdateService){
+    $rootScope.labels = [];
+    console.log('autoUpdateStatus', autoUpdateStatus);
     this.name = $routeParams.id;
     this.model = data;
     $rootScope.progressbar = false;
@@ -260,7 +298,25 @@ angular.module('adfDynamicSample', [
     $scope.NumProcessed = 0;
     $scope.NumUpdated = 0;
     $scope.NumCreated = 0;
-    $scope.autoUpdate = false;
+    $scope.autoUpdateFull = false;
+    $scope.autoUpdateHalf = false;
+    if (lodash.indexOf(autoUpdateStatus.webhookEvents, 'products/update') > -1 && lodash.indexOf(autoUpdateStatus.cronjobTypes, 'sync') > -1) {
+      $scope.autoUpdateHalf = true;
+    }
+    if (lodash.indexOf(autoUpdateStatus.webhookEvents, 'products/update') > -1
+    && lodash.indexOf(autoUpdateStatus.webhookEvents, 'products/delete') > -1 && lodash.indexOf(autoUpdateStatus.cronjobTypes, 'sync&delete') > -1) {
+      $scope.autoUpdateFull = true;
+      $scope.autoUpdateHalf = false;
+    }
+    if (lodash.indexOf(autoUpdateStatus.cronjobTypes, 'sync&delete') > -1 && lodash.indexOf(autoUpdateStatus.cronjobTypes, 'sync') > -1) {
+      console.error('invalid state!');
+    }
+    if ($scope.autoUpdateFull) {
+      $rootScope.labels.push({title: 'Auto-update on (with delete)', class: 'label-warning'});
+    } else if ($scope.autoUpdateHalf){
+      $rootScope.labels.push({title: 'Auto-update on (conservative)', class: 'label-success'});
+    }
+
 
     $scope.$on('adfDashboardChanged', function(event, name, model) {
       storeService.set(name, model);
@@ -309,15 +365,57 @@ angular.module('adfDynamicSample', [
           }
       }
     }, {
-      label: 'auto-update',
+      label: 'Toggle auto-update, delete unmatched product',
       icon: 'ion-android-sync',
       click: function() {
-        if (!$scope.autoUpdate) {
-          notificationService.notify("Auto update turned on, any product changes will be recorded and synchronized");
-          $scope.autoUpdate = true;
+        if (!$scope.autoUpdateFull) {
+          if ($scope.autoUpdateHalf) {
+            notificationService.notify("You must turn off ther other Auto-Update option first", 'warning');
+            return;
+          }
+          autoUpdateService.fullAutoUpdate()
+          .then((message) => {
+            $scope.autoUpdateFull = true;
+            console.log(message);
+            notificationService.notify("Auto update turned on, any product changes will be recorded and synchronized, unmatched products will be deleted");
+            $rootScope.labels = []
+            $rootScope.labels.push({title: 'Auto-update on (with delete)', class: 'label-warning'});
+          })
         } else {
-          notificationService.notify("Auto update turned off")
-          $scope.autoUpdate = false;
+          autoUpdateService.cancel()
+          .then((message) => {
+            $scope.autoUpdateFull = false;
+            notificationService.notify("Auto update (with delete) turned off");
+            $rootScope.labels = [];
+            console.log(message);
+          })
+        }
+      }
+    }, {
+      label: 'Toggle auto-update, keep unmatched product',
+      icon: 'ion-refresh',
+      click: function() {
+        if (!$scope.autoUpdateHalf) {
+          if ($scope.autoUpdateFull) {
+            notificationService.notify("You must turn off ther other Auto-Update option first", 'warning');
+            return;
+          }
+          autoUpdateService.halfAutoUpdate()
+          .then((message) => {
+            $scope.autoUpdateHalf= true;
+            console.log(message);
+            notificationService.notify("Auto update turned on, any product changes will be recorded and synchronized, unmatched products will be kept");
+            $rootScope.labels = []
+            $rootScope.labels.push({title: 'Auto-update on (conservative)', class: 'label-success'});
+          })
+        } else {
+          autoUpdateService.cancel()
+          .then((message) => {
+            $scope.autoUpdateHalf = false;
+            notificationService.notify("Auto update (conservative) turned off");
+            $rootScope.labels = [];
+            console.log(message);
+          })
         }
       }
     }];
